@@ -13,7 +13,6 @@ public:
     }
     
     driver_.clear();
-    driver_.update();
     RCLCPP_INFO(get_logger(), "LED matrix initialized and cleared");
     
     // Subscribe to 8x8 RGB image (sensor_msgs/Image)
@@ -33,23 +32,15 @@ public:
       std::bind(&LEDMatrixNode::setPixelCallback, this,
                 std::placeholders::_1, std::placeholders::_2));
     
-    // Service to update display
-    update_srv_ = create_service<std_srvs::srv::Trigger>(
-      "/sense_hat/led_matrix/update",
-      std::bind(&LEDMatrixNode::updateCallback, this,
-                std::placeholders::_1, std::placeholders::_2));
-    
     RCLCPP_INFO(get_logger(), "Subscribed to /sense_hat/led_matrix/image");
     RCLCPP_INFO(get_logger(), "Service /sense_hat/led_matrix/clear ready");
     RCLCPP_INFO(get_logger(), "Service /sense_hat/led_matrix/set_pixel ready");
-    RCLCPP_INFO(get_logger(), "Service /sense_hat/led_matrix/update ready");
   }
 
 private:
   void setPixelCallback(const ros2_pi_sense_hat::srv::SetPixel::Request::SharedPtr request,
                         ros2_pi_sense_hat::srv::SetPixel::Response::SharedPtr response) {
     driver_.setPixel(request->x, request->y, request->r, request->g, request->b);
-    // No update() call - allows batching multiple pixels
     
     response->success = true;
     response->message = "Pixel set";
@@ -75,41 +66,32 @@ private:
     }
     
     // Convert from interleaved RGB8 to planar RGB5 format
+    std::vector<uint8_t> planar_data(192);
     for (int y = 0; y < 8; y++) {
       for (int x = 0; x < 8; x++) {
         int src_idx = (y * 8 + x) * 3;  // RGB interleaved index
-        uint8_t r = msg->data[src_idx] >> 3;     // Scale to 5-bit
-        uint8_t g = msg->data[src_idx + 1] >> 3;
-        uint8_t b = msg->data[src_idx + 2] >> 3;
-        driver_.setPixel(x, y, r, g, b);
+        int row_offset = y * 24;
+        planar_data[row_offset + x] = msg->data[src_idx] >> 3;         // R
+        planar_data[row_offset + 8 + x] = msg->data[src_idx + 1] >> 3; // G
+        planar_data[row_offset + 16 + x] = msg->data[src_idx + 2] >> 3; // B
       }
     }
     
-    driver_.update();
+    driver_.setAll(planar_data.data(), 192);
   }
   
   void clearCallback(const std_srvs::srv::Trigger::Request::SharedPtr,
                      std_srvs::srv::Trigger::Response::SharedPtr response) {
     driver_.clear();
-    driver_.update();
     response->success = true;
     response->message = "Display cleared";
     RCLCPP_INFO(get_logger(), "Display cleared via service");
   }
   
-  void updateCallback(const std_srvs::srv::Trigger::Request::SharedPtr,
-                      std_srvs::srv::Trigger::Response::SharedPtr response) {
-    driver_.update();
-    response->success = true;
-    response->message = "Display updated";
-    RCLCPP_INFO(get_logger(), "Display updated via service");
-  }
-
   ATTiny88Driver driver_;
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr clear_srv_;
   rclcpp::Service<ros2_pi_sense_hat::srv::SetPixel>::SharedPtr pixel_srv_;
-  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr update_srv_;
 };
 
 int main(int argc, char** argv) {

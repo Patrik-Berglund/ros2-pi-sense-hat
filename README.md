@@ -71,8 +71,7 @@ python3 test_pattern.py white    # All white
 ### LED Matrix Services
 
 - `/sense_hat/led_matrix/clear` - Clear display
-- `/sense_hat/led_matrix/set_pixel` - Set individual pixel (batched)
-- `/sense_hat/led_matrix/update` - Update display (commit batched pixels)
+- `/sense_hat/led_matrix/set_pixel` - Set individual pixel (immediate update)
 
 ### LED Matrix Topics
 
