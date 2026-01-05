@@ -59,28 +59,38 @@ The SPI signals visible on the schematic are only for **ISP (In-System Programmi
 ## LED Matrix Control (Registers 0x00-0xBF)
 
 ### Format
-- **Total bytes:** 192 (64 pixels × 3 color channels)
+- **Total bytes:** 192 (8 rows × 24 bytes per row)
 - **Pixel format:** RGB, 5-bit per channel (0-31)
-- **Pixel order:** Row-major, left-to-right, top-to-bottom
+- **Layout:** **PLANAR** - All red values, then all green, then all blue per row
 
-### Memory Layout
+### Memory Layout (PLANAR FORMAT)
+Each row uses 24 bytes arranged as:
 ```
-Pixel 0:  [R0, G0, B0]   (registers 0x00, 0x01, 0x02)
-Pixel 1:  [R1, G1, B1]   (registers 0x03, 0x04, 0x05)
-...
-Pixel 63: [R63, G63, B63] (registers 0xBD, 0xBE, 0xBF)
+Row Y (24 bytes):
+  Bytes 0-7:   R0, R1, R2, R3, R4, R5, R6, R7   (Red plane)
+  Bytes 8-15:  G0, G1, G2, G3, G4, G5, G6, G7   (Green plane) 
+  Bytes 16-23: B0, B1, B2, B3, B4, B5, B6, B7   (Blue plane)
 ```
 
-### 8x8 Matrix Layout
+### Register Mapping
 ```
-Row 0: Pixels 0-7   (registers 0x00-0x17)
-Row 1: Pixels 8-15  (registers 0x18-0x2F)
-Row 2: Pixels 16-23 (registers 0x30-0x47)
-Row 3: Pixels 24-31 (registers 0x48-0x5F)
-Row 4: Pixels 32-39 (registers 0x60-0x77)
-Row 5: Pixels 40-47 (registers 0x78-0x8F)
-Row 6: Pixels 48-55 (registers 0x90-0xA7)
-Row 7: Pixels 56-63 (registers 0xA8-0xBF)
+Row 0: 0x00-0x17 (bytes 0-23)
+Row 1: 0x18-0x2F (bytes 24-47)
+Row 2: 0x30-0x47 (bytes 48-71)
+Row 3: 0x48-0x5F (bytes 72-95)
+Row 4: 0x60-0x77 (bytes 96-119)
+Row 5: 0x78-0x8F (bytes 120-143)
+Row 6: 0x90-0xA7 (bytes 144-167)
+Row 7: 0xA8-0xBF (bytes 168-191)
+```
+
+### Pixel Address Calculation
+```c
+// For pixel at (x, y) with color (r, g, b):
+size_t row_offset = y * 24;
+framebuffer[row_offset + x] = r & 0x1F;          // Red plane
+framebuffer[row_offset + 8 + x] = g & 0x1F;      // Green plane  
+framebuffer[row_offset + 16 + x] = b & 0x1F;     // Blue plane
 ```
 
 ### PWM Brightness
@@ -93,19 +103,31 @@ Row 7: Pixels 56-63 (registers 0xA8-0xBF)
 **Single Pixel:**
 ```c
 // Set pixel at position (x, y) to color (r, g, b)
-uint8_t pixel_index = y * 8 + x;
-uint8_t reg_addr = pixel_index * 3;
+size_t row_offset = y * 24;  // 24 bytes per row
 
-i2c_write_byte(0x46, reg_addr + 0, r);  // Red (0-31)
-i2c_write_byte(0x46, reg_addr + 1, g);  // Green (0-31)
-i2c_write_byte(0x46, reg_addr + 2, b);  // Blue (0-31)
+uint8_t reg_addr_r = row_offset + x;      // Red plane
+uint8_t reg_addr_g = row_offset + 8 + x;  // Green plane  
+uint8_t reg_addr_b = row_offset + 16 + x; // Blue plane
+
+i2c_write_byte(0x46, reg_addr_r, r & 0x1F);  // Red (0-31)
+i2c_write_byte(0x46, reg_addr_g, g & 0x1F);  // Green (0-31)
+i2c_write_byte(0x46, reg_addr_b, b & 0x1F);  // Blue (0-31)
 ```
 
 **Full Frame:**
 ```c
-// Write all 192 bytes at once
+// Write all 192 bytes at once in planar format
 uint8_t frame_buffer[192];
-// ... fill frame_buffer with RGB data ...
+
+for (int y = 0; y < 8; y++) {
+    size_t row_offset = y * 24;
+    for (int x = 0; x < 8; x++) {
+        frame_buffer[row_offset + x] = red_values[y][x] & 0x1F;      // Red plane
+        frame_buffer[row_offset + 8 + x] = green_values[y][x] & 0x1F; // Green plane
+        frame_buffer[row_offset + 16 + x] = blue_values[y][x] & 0x1F; // Blue plane
+    }
+}
+
 i2c_write_block(0x46, 0x00, frame_buffer, 192);
 ```
 
@@ -214,14 +236,17 @@ The kernel drivers communicate with the ATTINY88 using this same I2C protocol.
 #include <fcntl.h>
 #include <unistd.h>
 
-void set_led_matrix(int i2c_fd, uint8_t pixels[64][3]) {
+void set_led_matrix_planar(int i2c_fd, uint8_t red[8][8], uint8_t green[8][8], uint8_t blue[8][8]) {
     uint8_t buffer[192];
     
-    // Convert 2D array to linear buffer
-    for (int i = 0; i < 64; i++) {
-        buffer[i * 3 + 0] = pixels[i][0] & 0x1F;  // Red (5-bit)
-        buffer[i * 3 + 1] = pixels[i][1] & 0x1F;  // Green (5-bit)
-        buffer[i * 3 + 2] = pixels[i][2] & 0x1F;  // Blue (5-bit)
+    // Convert to planar format
+    for (int y = 0; y < 8; y++) {
+        size_t row_offset = y * 24;
+        for (int x = 0; x < 8; x++) {
+            buffer[row_offset + x] = red[y][x] & 0x1F;      // Red plane
+            buffer[row_offset + 8 + x] = green[y][x] & 0x1F; // Green plane
+            buffer[row_offset + 16 + x] = blue[y][x] & 0x1F; // Blue plane
+        }
     }
     
     // Set I2C slave address
@@ -238,14 +263,15 @@ void set_led_matrix(int i2c_fd, uint8_t pixels[64][3]) {
 int main() {
     int i2c_fd = open("/dev/i2c-1", O_RDWR);
     
-    // Create a red cross pattern
-    uint8_t pixels[64][3] = {0};
+    // Create color planes for red cross pattern
+    uint8_t red[8][8] = {0}, green[8][8] = {0}, blue[8][8] = {0};
+    
     for (int i = 0; i < 8; i++) {
-        pixels[i * 8 + i][0] = 31;      // Diagonal: red
-        pixels[i * 8 + (7-i)][0] = 31;  // Anti-diagonal: red
+        red[i][i] = 31;      // Diagonal: red
+        red[i][7-i] = 31;    // Anti-diagonal: red
     }
     
-    set_led_matrix(i2c_fd, pixels);
+    set_led_matrix_planar(i2c_fd, red, green, blue);
     
     close(i2c_fd);
     return 0;
