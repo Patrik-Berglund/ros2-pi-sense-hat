@@ -1,0 +1,32 @@
+# ROS2
+install/
+build/
+log/
+*.bag
+*.db3
+
+# C++
+*.o
+*.so
+*.a
+*.out
+*.exe
+
+# Build artifacts
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# System
+.DS_Store
+Thumbs.db
