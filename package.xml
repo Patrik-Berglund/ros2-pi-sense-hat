@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>ros2_pi_sense_hat</name>
+  <version>0.1.0</version>
+  <description>ROS2 package for Raspberry Pi Sense HAT v2</description>
+  <maintainer email="patrik@todo.todo">Patrik Berglund</maintainer>
+  <license>TODO</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
