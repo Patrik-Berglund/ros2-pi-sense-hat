@@ -16,9 +16,11 @@ ROS2 package for interfacing with the Raspberry Pi Sense HAT on Ubuntu 24.04 and
 ## Installation
 
 ```bash
-# Ensure I2C is enabled
+# Ensure I2C is enabled and set to 400kHz for optimal performance
 sudo raspi-config
 # Enable I2C in Interface Options
+# Add to /boot/firmware/config.txt:
+# dtparam=i2c_arm_baudrate=400000
 # Reboot if needed
 
 # Verify I2C devices are detected
@@ -36,27 +38,52 @@ git clone <repository-url> ros2-pi-sense-hat
 
 # Build the workspace
 cd ~/ros2_ws
-colcon build --packages-select ros2-pi-sense-hat
+colcon build --packages-select ros2_pi_sense_hat
 source install/setup.bash
 ```
 
 ## Usage
 
 ```bash
-# Launch the Sense HAT node
-ros2 run ros2-pi-sense-hat sense_hat_node
+# Launch the LED matrix node
+./run_node.sh
+
+# Test individual pixels (batched updates)
+./test_pixel.sh
+
+# Test full image patterns
+python3 test_pattern.py cross    # Red X pattern
+python3 test_pattern.py red      # All red
+python3 test_pattern.py green    # All green
+python3 test_pattern.py blue     # All blue
+python3 test_pattern.py white    # All white
 ```
 
-## Features
+## Features - LED Matrix (COMPLETED)
 
-- Direct I2C register-level sensor access (no external libraries)
+- ✅ Direct I2C register-level ATTINY88 access (no external libraries)
+- ✅ Control 8x8 RGB LED matrix via direct ATTINY88 I2C
+- ✅ Service-based pixel control for efficient batched updates
+- ✅ Full image pattern support via ROS2 Image messages
+- ✅ Component-based ROS2 architecture
+- ✅ Optimized I2C performance (400kHz)
+
+### LED Matrix Services
+
+- `/sense_hat/led_matrix/clear` - Clear display
+- `/sense_hat/led_matrix/set_pixel` - Set individual pixel (batched)
+- `/sense_hat/led_matrix/update` - Update display (commit batched pixels)
+
+### LED Matrix Topics
+
+- `/sense_hat/led_matrix/image` - Full 8x8 RGB8 image updates
+
+## Features - Sensors (TODO)
+
 - Read IMU data (accelerometer, gyroscope, magnetometer)
 - Read environmental data (temperature, humidity, pressure)
 - Read color and ambient light sensor
-- Control 8x8 RGB LED matrix via direct ATTINY88 I2C
 - Read 5-way joystick input via ATTINY88 I2C
-- Component-based ROS2 architecture
-- Configurable via ROS2 parameters
 
 ## Documentation
 

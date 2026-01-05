@@ -1,6 +1,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include "std_srvs/srv/trigger.hpp"
+#include "ros2_pi_sense_hat/srv/set_pixel.hpp"
 #include "ros2_pi_sense_hat/attiny88_driver.hpp"
 
 class LEDMatrixNode : public rclcpp::Node {
@@ -26,37 +27,34 @@ public:
       std::bind(&LEDMatrixNode::clearCallback, this, 
                 std::placeholders::_1, std::placeholders::_2));
     
-    // Declare parameters for single pixel control
-    declare_parameter("pixel_x", 0);
-    declare_parameter("pixel_y", 0);
-    declare_parameter("pixel_r", 0);
-    declare_parameter("pixel_g", 0);
-    declare_parameter("pixel_b", 0);
+    // Service to set individual pixels
+    pixel_srv_ = create_service<ros2_pi_sense_hat::srv::SetPixel>(
+      "/sense_hat/led_matrix/set_pixel",
+      std::bind(&LEDMatrixNode::setPixelCallback, this,
+                std::placeholders::_1, std::placeholders::_2));
     
-    // Timer to check for parameter updates
-    timer_ = create_wall_timer(
-      std::chrono::milliseconds(100),
-      std::bind(&LEDMatrixNode::timerCallback, this));
+    // Service to update display
+    update_srv_ = create_service<std_srvs::srv::Trigger>(
+      "/sense_hat/led_matrix/update",
+      std::bind(&LEDMatrixNode::updateCallback, this,
+                std::placeholders::_1, std::placeholders::_2));
     
     RCLCPP_INFO(get_logger(), "Subscribed to /sense_hat/led_matrix/image");
     RCLCPP_INFO(get_logger(), "Service /sense_hat/led_matrix/clear ready");
-    RCLCPP_INFO(get_logger(), "Use 'ros2 param set' to control individual pixels");
+    RCLCPP_INFO(get_logger(), "Service /sense_hat/led_matrix/set_pixel ready");
+    RCLCPP_INFO(get_logger(), "Service /sense_hat/led_matrix/update ready");
   }
 
 private:
-  void timerCallback() {
-    int x = get_parameter("pixel_x").as_int();
-    int y = get_parameter("pixel_y").as_int();
-    int r = get_parameter("pixel_r").as_int();
-    int g = get_parameter("pixel_g").as_int();
-    int b = get_parameter("pixel_b").as_int();
+  void setPixelCallback(const ros2_pi_sense_hat::srv::SetPixel::Request::SharedPtr request,
+                        ros2_pi_sense_hat::srv::SetPixel::Response::SharedPtr response) {
+    driver_.setPixel(request->x, request->y, request->r, request->g, request->b);
+    // No update() call - allows batching multiple pixels
     
-    if (x != last_x_ || y != last_y_ || r != last_r_ || g != last_g_ || b != last_b_) {
-      driver_.setPixel(x, y, r, g, b);
-      driver_.update();
-      RCLCPP_INFO(get_logger(), "Set pixel (%d,%d) to RGB(%d,%d,%d)", x, y, r, g, b);
-      last_x_ = x; last_y_ = y; last_r_ = r; last_g_ = g; last_b_ = b;
-    }
+    response->success = true;
+    response->message = "Pixel set";
+    RCLCPP_INFO(get_logger(), "Set pixel (%d,%d) to RGB(%d,%d,%d)", 
+                request->x, request->y, request->r, request->g, request->b);
   }
   
   void imageCallback(const sensor_msgs::msg::Image::SharedPtr msg) {
@@ -76,13 +74,17 @@ private:
       return;
     }
     
-    // Convert RGB8 (0-255) to RGB5 (0-31)
-    uint8_t rgb5_data[192];
-    for (size_t i = 0; i < 192; i++) {
-      rgb5_data[i] = msg->data[i] >> 3;  // Scale 8-bit to 5-bit
+    // Convert from interleaved RGB8 to planar RGB5 format
+    for (int y = 0; y < 8; y++) {
+      for (int x = 0; x < 8; x++) {
+        int src_idx = (y * 8 + x) * 3;  // RGB interleaved index
+        uint8_t r = msg->data[src_idx] >> 3;     // Scale to 5-bit
+        uint8_t g = msg->data[src_idx + 1] >> 3;
+        uint8_t b = msg->data[src_idx + 2] >> 3;
+        driver_.setPixel(x, y, r, g, b);
+      }
     }
     
-    driver_.setAll(rgb5_data, 192);
     driver_.update();
   }
   
@@ -94,12 +96,20 @@ private:
     response->message = "Display cleared";
     RCLCPP_INFO(get_logger(), "Display cleared via service");
   }
+  
+  void updateCallback(const std_srvs::srv::Trigger::Request::SharedPtr,
+                      std_srvs::srv::Trigger::Response::SharedPtr response) {
+    driver_.update();
+    response->success = true;
+    response->message = "Display updated";
+    RCLCPP_INFO(get_logger(), "Display updated via service");
+  }
 
   ATTiny88Driver driver_;
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr clear_srv_;
-  rclcpp::TimerBase::SharedPtr timer_;
-  int last_x_ = -1, last_y_ = -1, last_r_ = -1, last_g_ = -1, last_b_ = -1;
+  rclcpp::Service<ros2_pi_sense_hat::srv::SetPixel>::SharedPtr pixel_srv_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr update_srv_;
 };
 
 int main(int argc, char** argv) {

@@ -1,11 +1,18 @@
 #!/bin/bash
 source /opt/ros/kilted/setup.bash
+source install/setup.bash
 
-echo "Setting pixel at (3,3) to red (31,0,0)..."
-ros2 param set /led_matrix_node pixel_x 3
-ros2 param set /led_matrix_node pixel_y 3
-ros2 param set /led_matrix_node pixel_r 31
-ros2 param set /led_matrix_node pixel_g 0
-ros2 param set /led_matrix_node pixel_b 0
+echo "Clearing display..."
+ros2 service call /sense_hat/led_matrix/clear std_srvs/srv/Trigger
 
-echo "Done! Check the display."
+echo "Setting corner pixels (batched)..."
+ros2 service call /sense_hat/led_matrix/set_pixel ros2_pi_sense_hat/srv/SetPixel "{x: 0, y: 0, r: 31, g: 0, b: 0}" &   # Red top-left
+ros2 service call /sense_hat/led_matrix/set_pixel ros2_pi_sense_hat/srv/SetPixel "{x: 7, y: 0, r: 0, g: 31, b: 0}" &   # Green top-right
+ros2 service call /sense_hat/led_matrix/set_pixel ros2_pi_sense_hat/srv/SetPixel "{x: 0, y: 7, r: 0, g: 0, b: 31}" &   # Blue bottom-left
+ros2 service call /sense_hat/led_matrix/set_pixel ros2_pi_sense_hat/srv/SetPixel "{x: 7, y: 7, r: 31, g: 31, b: 0}" &  # Yellow bottom-right
+wait
+
+echo "Updating display..."
+ros2 service call /sense_hat/led_matrix/update std_srvs/srv/Trigger
+
+echo "Done!"

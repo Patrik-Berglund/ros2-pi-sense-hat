@@ -10,6 +10,11 @@ find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "srv/SetPixel.srv"
+)
 
 include_directories(include)
 
@@ -25,6 +30,9 @@ ament_target_dependencies(led_matrix_node
   std_msgs 
   std_srvs
 )
+
+rosidl_target_interfaces(led_matrix_node
+  ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
 install(TARGETS
   led_matrix_node
