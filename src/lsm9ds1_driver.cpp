@@ -22,44 +22,34 @@ static const uint8_t OUT_X_G = 0x18;
 static const uint8_t WHO_AM_I_AG_VAL = 0x68;
 static const uint8_t WHO_AM_I_M_VAL = 0x3D;
 
-LSM9DS1Driver::LSM9DS1Driver() 
-  : accel_gyro_("/dev/i2c-1", LSM9DS1_AG_ADDR),
-    magnetometer_("/dev/i2c-1", LSM9DS1_M_ADDR),
+LSM9DS1Driver::LSM9DS1Driver(rclcpp::Node* node) 
+  : accel_gyro_(node, LSM9DS1_AG_ADDR),
+    magnetometer_(node, LSM9DS1_M_ADDR),
     accel_range_(2), gyro_range_(245), mag_range_(4) {
 }
 
 LSM9DS1Driver::~LSM9DS1Driver() {
-  accel_gyro_.close();
-  magnetometer_.close();
 }
 
 bool LSM9DS1Driver::init() {
-  if (!accel_gyro_.open()) {
-    return false;
-  }
-
   // Verify accelerometer/gyroscope device ID
   uint8_t who_am_i;
   if (!accel_gyro_.readReg(WHO_AM_I_AG, who_am_i) || who_am_i != WHO_AM_I_AG_VAL) {
     return false;
   }
 
-  // Try to open magnetometer (optional)
-  if (magnetometer_.open()) {
-    uint8_t who_am_i_m;
-    if (magnetometer_.readReg(WHO_AM_I_M, who_am_i_m) && who_am_i_m == WHO_AM_I_M_VAL) {
-      // Configure magnetometer
-      // CTRL_REG1_M: TEMP_COMP=1, OM=10 (high-perf), DO=101 (20Hz)
-      magnetometer_.writeReg(CTRL_REG1_M, 0x9C);
-      
-      // CTRL_REG2_M: FS=00 (±4 gauss)
-      magnetometer_.writeReg(CTRL_REG2_M, 0x00);
-      
-      // CTRL_REG3_M: MD=00 (continuous mode)
-      magnetometer_.writeReg(CTRL_REG3_M, 0x00);
-    } else {
-      magnetometer_.close();
-    }
+  // Try to read magnetometer (optional)
+  uint8_t who_am_i_m;
+  if (magnetometer_.readReg(WHO_AM_I_M, who_am_i_m) && who_am_i_m == WHO_AM_I_M_VAL) {
+    // Configure magnetometer
+    // CTRL_REG1_M: TEMP_COMP=1, OM=10 (high-perf), DO=101 (20Hz)
+    magnetometer_.writeReg(CTRL_REG1_M, 0x9C);
+    
+    // CTRL_REG2_M: FS=00 (±4 gauss)
+    magnetometer_.writeReg(CTRL_REG2_M, 0x00);
+    
+    // CTRL_REG3_M: MD=00 (continuous mode)
+    magnetometer_.writeReg(CTRL_REG3_M, 0x00);
   }
 
   // Configure both accel+gyro (activates both at same ODR)
@@ -76,17 +66,17 @@ bool LSM9DS1Driver::readAllSensors(IMUData& data) {
   // Read gyroscope (6 bytes from 0x18) and accelerometer (6 bytes from 0x28) separately
   // Temperature is at 0x15-0x16, not included in burst reads
   uint8_t gyro_data[6];
-  if (!accel_gyro_.readMultiReg(0x18, gyro_data, 6, false)) {
+  if (!accel_gyro_.readMultiReg(0x18, gyro_data, 6)) {
     return false;
   }
   
   uint8_t accel_data[6];
-  if (!accel_gyro_.readMultiReg(0x28, accel_data, 6, false)) {
+  if (!accel_gyro_.readMultiReg(0x28, accel_data, 6)) {
     return false;
   }
   
   uint8_t temp_data[2];
-  if (!accel_gyro_.readMultiReg(0x15, temp_data, 2, false)) {
+  if (!accel_gyro_.readMultiReg(0x15, temp_data, 2)) {
     return false;
   }
   
@@ -114,20 +104,18 @@ bool LSM9DS1Driver::readAllSensors(IMUData& data) {
   
   // Read magnetometer (separate I2C device) - optional
   data.mag_x = data.mag_y = data.mag_z = 0.0f;
-  if (magnetometer_.isOpen()) {
-    // Use 6-byte burst read like ST driver
-    uint8_t mag_data[6];
-    if (magnetometer_.readMultiReg(0x28, mag_data, 6, true)) {
-      // Parse little endian data like ST driver
-      int16_t raw_mag_x = (int16_t)((mag_data[1] << 8) | mag_data[0]);
-      int16_t raw_mag_y = (int16_t)((mag_data[3] << 8) | mag_data[2]);
-      int16_t raw_mag_z = (int16_t)((mag_data[5] << 8) | mag_data[4]);
-      
-      float mag_sens = getMagSensitivity();
-      data.mag_x = raw_mag_x * mag_sens / 1000.0f;
-      data.mag_y = raw_mag_y * mag_sens / 1000.0f;
-      data.mag_z = raw_mag_z * mag_sens / 1000.0f;
-    }
+  // Try to read magnetometer - if it fails, just skip it
+  uint8_t mag_data[6];
+  if (magnetometer_.readMultiReg(0x28, mag_data, 6)) {
+    // Parse little endian data like ST driver
+    int16_t raw_mag_x = (int16_t)((mag_data[1] << 8) | mag_data[0]);
+    int16_t raw_mag_y = (int16_t)((mag_data[3] << 8) | mag_data[2]);
+    int16_t raw_mag_z = (int16_t)((mag_data[5] << 8) | mag_data[4]);
+    
+    float mag_sens = getMagSensitivity();
+    data.mag_x = raw_mag_x * mag_sens / 1000.0f;
+    data.mag_y = raw_mag_y * mag_sens / 1000.0f;
+    data.mag_z = raw_mag_z * mag_sens / 1000.0f;
   }
   
   return true;

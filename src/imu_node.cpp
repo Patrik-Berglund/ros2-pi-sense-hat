@@ -7,7 +7,7 @@
 
 class IMUNode : public rclcpp::Node {
 public:
-  IMUNode() : Node("imu_node") {
+  IMUNode() : Node("imu_node"), driver_(this) {
     // Declare parameters
     declare_parameter("publish_rate", 10);
     declare_parameter("accel_range", 2);

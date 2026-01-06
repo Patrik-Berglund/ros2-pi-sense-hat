@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ros2_pi_sense_hat/i2c_device.hpp"
+#include "ros2_pi_sense_hat/i2c_client.hpp"
 #include <cstdint>
 
 struct IMUData {
@@ -12,7 +12,7 @@ struct IMUData {
 
 class LSM9DS1Driver {
 public:
-  LSM9DS1Driver();
+  LSM9DS1Driver(rclcpp::Node* node);
   ~LSM9DS1Driver();
 
   bool init();
@@ -24,8 +24,8 @@ public:
   bool setMagRange(int range_gauss);  // 4, 8, 12, 16
 
 private:
-  I2CDevice accel_gyro_;
-  I2CDevice magnetometer_;
+  I2CClient accel_gyro_;
+  I2CClient magnetometer_;
   
   int accel_range_;
   int gyro_range_;

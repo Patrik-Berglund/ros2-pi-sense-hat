@@ -1,0 +1,14 @@
+# I2C Transaction Action
+# Goal
+uint8 device_address
+uint8 register_address
+uint8[] write_data
+uint8 read_length
+---
+# Result
+uint8[] read_data
+bool success
+string error_message
+---
+# Feedback
+string status

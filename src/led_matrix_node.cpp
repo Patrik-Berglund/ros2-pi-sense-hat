@@ -17,12 +17,7 @@ void signalHandler(int signum) {
 
 class LEDMatrixNode : public rclcpp::Node {
 public:
-  LEDMatrixNode() : Node("led_matrix_node") {
-    if (!driver_.initI2C()) {
-      RCLCPP_ERROR(get_logger(), "Failed to initialize I2C");
-      return;
-    }
-    
+  LEDMatrixNode() : Node("led_matrix_node"), driver_(this) {
     // Initialize only frame sync (GPIO24) for LED matrix
     driver_.initFrameSync();
     

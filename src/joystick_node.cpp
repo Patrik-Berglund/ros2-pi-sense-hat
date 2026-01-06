@@ -18,12 +18,7 @@ void signalHandler(int signum) {
 
 class JoystickNode : public rclcpp::Node {
 public:
-  JoystickNode() : Node("joystick_node"), interrupt_thread_running_(false) {
-    if (!driver_.initI2C()) {
-      RCLCPP_ERROR(get_logger(), "Failed to initialize I2C");
-      return;
-    }
-    
+  JoystickNode() : Node("joystick_node"), driver_(this), interrupt_thread_running_(false) {
     // Initialize only joystick interrupt (GPIO23) for joystick
     driver_.initJoystickInterrupt();
     
