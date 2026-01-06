@@ -4,7 +4,37 @@
 
 The Sense HAT v2 uses an ATTINY88 microcontroller as an interface bridge between the Raspberry Pi and the LED matrix/joystick hardware. The ATTINY88 acts as an I2C slave device that the Pi can communicate with.
 
+**Important**: The ATTINY88 firmware **only** handles LED matrix and joystick functionality. All sensors (IMU, environmental, color) connect directly to the Pi's I2C bus and are not managed by the ATTINY88.
+
 **Source:** [raspberrypi/rpi-sense](https://github.com/raspberrypi/rpi-sense)
+
+## Hardware Architecture
+
+```
+Pi I2C Bus 1 (/dev/i2c-1)
+├── ATTINY88 (0x46) - LED matrix + joystick only
+├── LSM9DS1 Accel/Gyro (0x6A/0x6B) - Direct to Pi
+├── LSM9DS1 Magnetometer (0x1C/0x1E) - Direct to Pi  
+├── HTS221 (0x5F) - Direct to Pi
+├── LPS25H (0x5C) - Direct to Pi
+└── TCS3400 (0x39) - Direct to Pi
+```
+
+## Sensor I/O Limitations
+
+**Critical Constraint:** All sensors connect to Pi via I2C only. No sensor GPIO pins (interrupts, reset, etc.) are connected to the Pi.
+
+**Impact on Implementation:**
+- **Polling-based only** - No interrupt-driven sensor reading
+- **No hardware resets** - Cannot hardware reset sensors via GPIO
+- **No external triggers** - Cannot use GPIO to trigger measurements
+- **I2C register access only** - Limited to standard I2C register operations
+
+**Lost Sensor Features:**
+- LSM9DS1: No INT1_A/G, INT2_A/G, INT_M interrupts
+- HTS221: No DRDY data-ready pin
+- LPS25H: No INT_DRDY interrupt pin
+- TCS3400: No INT threshold interrupt pin
 
 ## I2C Configuration
 

@@ -9,11 +9,18 @@ Component-based architecture with individual nodes for each Sense HAT function, 
 ### 1. IMU Node
 **Purpose:** Read and publish orientation data from accelerometer, gyroscope, and magnetometer
 
+**Hardware:** LSM9DS1 via direct I2C (0x6A/0x6B accel/gyro, 0x1C/0x1E mag)
+
+**Constraints:**
+- **Polling-based only** - No interrupt pins connected to Pi GPIO
+- **I2C register access only** - No reset or trigger pins available
+- **Basic sensor configuration** - Limited to I2C register setup
+
 **Publishers:**
 - `/sense_hat/imu` (sensor_msgs/Imu) - orientation, angular velocity, linear acceleration
 
 **Parameters:**
-- `publish_rate` (int, default: 10 Hz)
+- `publish_rate` (int, default: 10 Hz) - Polling frequency
 - `enable_magnetometer` (bool, default: true)
 
 **Services:**
@@ -97,29 +104,32 @@ Component-based architecture with individual nodes for each Sense HAT function, 
 
 **Reference:** See `docs/datasheets/` folder for detailed register maps and specifications.
 
+**Hardware Architecture:** All sensors connect directly to Pi I2C bus. ATTINY88 only handles LED matrix and joystick.
+
 - [x] **I2C Base Class** - raw I2C communication (`/dev/i2c-1`, ioctl)
   - Open/close I2C bus
   - Read/write registers
   - Multi-byte read/write operations
-- [ ] **LSM9DS1 Driver** (IMU) - I2C 0x6A/0x6B (accel/gyro), 0x1C/0x1E (mag)
+- [ ] **LSM9DS1 Driver** (IMU) - I2C 0x6A/0x6B (accel/gyro), 0x1C/0x1E (mag) - **Direct to Pi**
   - Reference: `docs/datasheets/ST-LSM9DS1.md`
   - Register configuration
   - Raw data reading
   - Calibration and conversion to physical units
-- [ ] **HTS221 Driver** (Humidity/Temperature) - I2C 0x5F
+  - **Note:** No interrupts available (IMU interrupt pins not connected to Pi GPIO)
+- [ ] **HTS221 Driver** (Humidity/Temperature) - I2C 0x5F - **Direct to Pi**
   - Reference: `docs/datasheets/ST-HTS221.md`
   - Read calibration coefficients
   - Raw ADC to physical units conversion
-- [ ] **LPS25H Driver** (Pressure) - I2C 0x5C
+- [ ] **LPS25H Driver** (Pressure) - I2C 0x5C - **Direct to Pi**
   - Reference: `docs/datasheets/ST-LPS25H.md`
   - Register setup
   - Pressure and temperature reading
-- [ ] **TCS3400 Driver** (Color/Light Sensor) - I2C address TBD
+- [ ] **TCS3400 Driver** (Color/Light Sensor) - I2C 0x39 - **Direct to Pi**
   - Reference: `docs/datasheets/AMS-TCS3400.md`
   - RGB color channel reading
   - Clear/ambient light reading
   - Integration time and gain configuration
-- [x] **ATTINY88 Driver** - I2C 0x46
+- [x] **ATTINY88 Driver** - I2C 0x46 - **LED matrix and joystick only**
   - Reference: `docs/ATTINY88_PROTOCOL.md`
   - Device identification (register 0xF0)
   - LED matrix control (registers 0x00-0xBF, 192 bytes RGB)
@@ -157,20 +167,21 @@ Component-based architecture with individual nodes for each Sense HAT function, 
 - Direct register read/write operations
 
 **Sense HAT v2 I2C Devices:**
-- **LSM9DS1 IMU:**
+- **LSM9DS1 IMU:** - **Direct to Pi I2C**
   - Accel/Gyro: 0x6A or 0x6B
   - Magnetometer: 0x1C or 0x1E
   - 16-bit sensor data, configurable ranges and ODR
-- **HTS221 Humidity/Temp:** 0x5F
+  - **No interrupts available** (interrupt pins not connected to Pi GPIO)
+- **HTS221 Humidity/Temp:** 0x5F - **Direct to Pi I2C**
   - Requires calibration coefficient reading
   - 16-bit ADC values
-- **LPS25H Pressure:** 0x5C
+- **LPS25H Pressure:** 0x5C - **Direct to Pi I2C**
   - 24-bit pressure data
   - 16-bit temperature data
-- **TCS3400 Color/Light Sensor:** I2C address TBD (typically 0x39)
+- **TCS3400 Color/Light Sensor:** 0x39 - **Direct to Pi I2C**
   - RGB color channels + clear/ambient light
   - Configurable integration time and gain
-- **ATTINY88:** 0x46
+- **ATTINY88:** 0x46 - **LED matrix and joystick only**
   - LED matrix control (registers 0x00-0xBF)
   - Joystick reading (register 0xF2)
   - Device ID (register 0xF0 = 0x73)
@@ -193,6 +204,14 @@ Component-based architecture with individual nodes for each Sense HAT function, 
 - Read register 0xF2 for 5-bit button state
 - Optional: Monitor GPIO23 interrupt for event-driven reading
 - Alternative: Use kernel input event driver at `/dev/input/eventX`
+
+**Sensors (IMU, Environmental, Color):**
+- **All sensors connect directly to Pi I2C bus** - no ATTINY88 involvement
+- **No sensor interrupts available** - must use polling approach
+- **No sensor GPIO pins** - no reset, trigger, or interrupt pins connected to Pi
+- **I2C register access only** - limited to standard I2C read/write operations
+- Standard I2C register-based communication
+- Each sensor has its own I2C address on bus 1
 
 **No External Libraries:**
 - No RTIMULib - write our own I2C sensor drivers

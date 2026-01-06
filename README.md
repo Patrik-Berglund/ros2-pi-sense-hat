@@ -25,14 +25,35 @@ sudo raspi-config
 # dtparam=i2c_arm_baudrate=400000
 # Reboot if needed
 
+# Disable kernel drivers to allow direct I2C access
+sudo tee /etc/modprobe.d/blacklist-sense-hat.conf << EOF
+# Blacklist ST sensor kernel drivers for direct ROS2 I2C access
+# LSM9DS1 magnetometer
+blacklist st_magn_i2c
+blacklist st_magn_spi
+blacklist st_magn
+
+# LPS25H pressure sensor
+blacklist st_pressure_i2c
+blacklist st_pressure_spi
+blacklist st_pressure
+
+# ST sensor framework
+blacklist st_sensors_i2c
+blacklist st_sensors_spi
+blacklist st_sensors
+EOF
+# Reboot to apply blacklist
+
 # Verify I2C devices are detected
 i2cdetect -y 1
 # Should show devices at:
-#   0x46 - ATTINY88 (LED matrix and joystick)
-#   0x1C/0x1E - LSM9DS1 magnetometer
-#   0x5C - LPS25H pressure sensor
-#   0x5F - HTS221 humidity/temperature sensor
-#   0x6A/0x6B - LSM9DS1 accelerometer/gyroscope
+#   0x46 - ATTINY88 (LED matrix and joystick only)
+#   0x1C - LSM9DS1 magnetometer (direct to Pi)
+#   0x5C - LPS25H pressure sensor (direct to Pi)
+#   0x5F - HTS221 humidity/temperature sensor (direct to Pi)
+#   0x6A - LSM9DS1 accelerometer/gyroscope (direct to Pi)
+#   0x29 - VL53L0X distance sensor (direct to Pi)
 
 # Clone this repository into your ROS2 workspace
 cd ~/ros2_ws/src
@@ -109,13 +130,34 @@ python3 image_display.py image.png  # Display any image file (resized to 8x8)
 - `emoji_demo.py` - Colorful emoji display (smiley, heart, star, fire, rainbow, sun)
 - `image_display.py` - Display any image file on the LED matrix
 
+## Features - IMU (PARTIAL - Accelerometer/Gyroscope Only)
+
+- ✅ Direct I2C LSM9DS1 accelerometer and gyroscope access
+- ✅ Optimized 14-byte burst read for gyro + temperature + accel data
+- ✅ ROS2 standard sensor_msgs/Imu and sensor_msgs/Temperature messages
+- ✅ Configurable full-scale ranges (accel: 2/4/8/16g, gyro: 245/500/2000 dps)
+- ❌ **Magnetometer not responding** (hardware issue on this specific Sense HAT)
+
+### IMU Topics
+
+- `/sense_hat/imu/data_raw` - Raw IMU data (accel + gyro, no magnetometer)
+- `/sense_hat/temperature/imu` - Temperature from IMU sensor
+
+### IMU Services
+
+- `/sense_hat/imu/calibrate` - Calibrate IMU (placeholder for future implementation)
+
+**Note**: Magnetometer portion of LSM9DS1 not responding at expected I2C addresses (0x1C/0x1E). Accelerometer and gyroscope working correctly at 0x6A.
+
 ## Features - Sensors (TODO)
 
-- Read IMU data (accelerometer, gyroscope, magnetometer)
-- Read environmental data (temperature, humidity, pressure)
-- Read color and ambient light sensor
-- Read 5-way joystick input via ATTINY88 I2C (register 0xF2)
-- Event-driven joystick via GPIO23 (KEYS_INT) interrupt
+- Read IMU data (accelerometer, gyroscope, magnetometer) - **Direct I2C, polling-based**
+- Read environmental data (temperature, humidity, pressure) - **Direct I2C**
+- Read color and ambient light sensor - **Direct I2C**
+
+**Note**: All sensors connect directly to Pi I2C bus. ATTINY88 only handles LED matrix and joystick.
+
+**Sensor I/O Constraint**: No sensor GPIO pins (interrupts, reset, etc.) are connected to Pi - I2C access only.
 
 ## Documentation
 
