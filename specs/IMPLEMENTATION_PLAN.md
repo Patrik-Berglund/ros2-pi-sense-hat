@@ -95,37 +95,38 @@ Component-based architecture with individual nodes for each Sense HAT function, 
 
 ### Phase 2: Low-Level Hardware Drivers
 
-**Reference:** See `datasheets/` folder for detailed register maps and specifications.
+**Reference:** See `docs/datasheets/` folder for detailed register maps and specifications.
 
 - [x] **I2C Base Class** - raw I2C communication (`/dev/i2c-1`, ioctl)
   - Open/close I2C bus
   - Read/write registers
   - Multi-byte read/write operations
 - [ ] **LSM9DS1 Driver** (IMU) - I2C 0x6A/0x6B (accel/gyro), 0x1C/0x1E (mag)
-  - Reference: `datasheets/ST-LSM9DS1.md`
+  - Reference: `docs/datasheets/ST-LSM9DS1.md`
   - Register configuration
   - Raw data reading
   - Calibration and conversion to physical units
 - [ ] **HTS221 Driver** (Humidity/Temperature) - I2C 0x5F
-  - Reference: `datasheets/ST-HTS221.md`
+  - Reference: `docs/datasheets/ST-HTS221.md`
   - Read calibration coefficients
   - Raw ADC to physical units conversion
 - [ ] **LPS25H Driver** (Pressure) - I2C 0x5C
-  - Reference: `datasheets/ST-LPS25H.md`
+  - Reference: `docs/datasheets/ST-LPS25H.md`
   - Register setup
   - Pressure and temperature reading
 - [ ] **TCS3400 Driver** (Color/Light Sensor) - I2C address TBD
-  - Reference: `datasheets/AMS-TCS3400.md`
+  - Reference: `docs/datasheets/AMS-TCS3400.md`
   - RGB color channel reading
   - Clear/ambient light reading
   - Integration time and gain configuration
 - [x] **ATTINY88 Driver** - I2C 0x46
-  - Reference: `ATTINY88_PROTOCOL.md`
+  - Reference: `docs/ATTINY88_PROTOCOL.md`
   - Device identification (register 0xF0)
   - LED matrix control (registers 0x00-0xBF, 192 bytes RGB)
   - Joystick reading (register 0xF2)
   - GPIO interrupt handling (GPIO23 for joystick, GPIO24 for frame sync)
   - RGB888 to RGB555 conversion (5-bit per channel)
+  - Frame-synchronized bulk updates via libgpiod
 
 ### Phase 3: Component Nodes
 - [ ] Implement IMU node
@@ -199,7 +200,7 @@ Component-based architecture with individual nodes for each Sense HAT function, 
 - Direct Linux kernel interfaces only
 - Standard C++ and POSIX APIs
 - Raw I2C register programming for all sensors
-- Direct ATTINY88 communication (see ATTINY88_PROTOCOL.md)
+- Direct ATTINY88 communication (see docs/ATTINY88_PROTOCOL.md)
 
 ### Alternative Approaches
 
@@ -236,8 +237,9 @@ Component-based architecture with individual nodes for each Sense HAT function, 
 - `sensor_msgs` - standard sensor message types
 - `std_msgs` - standard message types
 - `std_srvs` - standard service types
-- Linux kernel headers: `<linux/i2c-dev.h>`, `<linux/i2c.h>`, `<linux/fb.h>`
-- Standard POSIX: `<fcntl.h>`, `<unistd.h>`, `<sys/ioctl.h>`, `<sys/mman.h>`
+- `libgpiod` - modern Linux GPIO interface
+- Linux kernel headers: `<linux/i2c-dev.h>`, `<linux/i2c.h>`
+- Standard POSIX: `<fcntl.h>`, `<unistd.h>`, `<sys/ioctl.h>`
 
 ### Build System
 - CMake-based with colcon

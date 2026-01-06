@@ -83,7 +83,8 @@ python3 image_display.py image.png  # Display any image file (resized to 8x8)
 
 - ✅ Direct I2C register-level ATTINY88 access (no external libraries)
 - ✅ Control 8x8 RGB LED matrix via direct ATTINY88 I2C
-- ✅ Optimized pixel-level updates (only changed pixels written)
+- ✅ Frame-synchronized updates using GPIO24 (FRAME_INT) via libgpiod
+- ✅ Bulk I2C writes (193 bytes per frame) for optimal performance
 - ✅ Full image pattern support via ROS2 Image messages
 - ✅ Component-based ROS2 architecture
 - ✅ Optimized I2C performance (400kHz)
@@ -113,14 +114,15 @@ python3 image_display.py image.png  # Display any image file (resized to 8x8)
 - Read IMU data (accelerometer, gyroscope, magnetometer)
 - Read environmental data (temperature, humidity, pressure)
 - Read color and ambient light sensor
-- Read 5-way joystick input via ATTINY88 I2C
+- Read 5-way joystick input via ATTINY88 I2C (register 0xF2)
+- Event-driven joystick via GPIO23 (KEYS_INT) interrupt
 
 ## Documentation
 
-- [Implementation Plan](IMPLEMENTATION_PLAN.md) - Detailed development roadmap
-- [ATTINY88 Protocol](ATTINY88_PROTOCOL.md) - LED matrix and joystick I2C protocol
-- [Kernel Driver Disable](KERNEL_DRIVER_DISABLE.md) - How to disable/enable kernel drivers
-- [Datasheets](datasheets/) - Sensor datasheets and schematics
+- [Implementation Plan](specs/IMPLEMENTATION_PLAN.md) - Detailed development roadmap
+- [ATTINY88 Protocol](docs/ATTINY88_PROTOCOL.md) - LED matrix and joystick I2C protocol
+- [Kernel Driver Disable](docs/KERNEL_DRIVER_DISABLE.md) - How to disable/enable kernel drivers
+- [Datasheets](docs/datasheets/) - Sensor datasheets and schematics
   - LSM9DS1 (IMU)
   - HTS221 (Humidity/Temperature)
   - LPS25H (Pressure)
