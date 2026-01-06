@@ -31,6 +31,8 @@ ament_target_dependencies(led_matrix_node
   std_srvs
 )
 
+target_link_libraries(led_matrix_node gpiod)
+
 rosidl_target_interfaces(led_matrix_node
   ${PROJECT_NAME} "rosidl_typesupport_cpp")
 

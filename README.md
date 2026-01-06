@@ -12,6 +12,8 @@ ROS2 package for interfacing with the Raspberry Pi Sense HAT on Ubuntu 24.04 and
 - Ubuntu 24.04
 - ROS2 Kilted
 - C++17 or later
+- Python 3.12+ (for demo scripts)
+- Pillow (PIL) for image display: `pip3 install Pillow`
 
 ## Installation
 
@@ -48,7 +50,7 @@ source install/setup.bash
 # Launch the LED matrix node
 ./run_node.sh
 
-# Test individual pixels (batched updates)
+# Test individual pixels
 ./test_pixel.sh
 
 # Test full image patterns
@@ -57,25 +59,54 @@ python3 test_pattern.py red      # All red
 python3 test_pattern.py green    # All green
 python3 test_pattern.py blue     # All blue
 python3 test_pattern.py white    # All white
+
+# Animated demos
+python3 demo_patterns.py rainbow    # Colorful spiral animation
+python3 demo_patterns.py heart      # Pulsing pink heart
+python3 demo_patterns.py fire       # Fire effect animation
+python3 demo_patterns.py matrix     # Matrix-style falling code
+
+# Fast pixel testing (Python ROS2 client)
+python3 test_pixels_fast.py         # Fast corner + center pixels
+
+# Fun demos
+python3 pixel_demo_loop.py          # Spinning wheel, bouncing ball, sparkles
+python3 countdown_demo.py           # Countdown from 9-0 with colored digits
+python3 emoji_demo.py               # Cycling colorful emojis
+
+# Display image files
+pip3 install Pillow                 # Install PIL first
+python3 image_display.py image.png  # Display any image file (resized to 8x8)
 ```
 
 ## Features - LED Matrix (COMPLETED)
 
 - ✅ Direct I2C register-level ATTINY88 access (no external libraries)
 - ✅ Control 8x8 RGB LED matrix via direct ATTINY88 I2C
-- ✅ Service-based pixel control for efficient batched updates
+- ✅ Optimized pixel-level updates (only changed pixels written)
 - ✅ Full image pattern support via ROS2 Image messages
 - ✅ Component-based ROS2 architecture
 - ✅ Optimized I2C performance (400kHz)
+- ✅ Fast Python ROS2 clients for interactive demos
+- ✅ Image file display support (PNG, JPG, etc.)
 
 ### LED Matrix Services
 
-- `/sense_hat/led_matrix/clear` - Clear display
+- `/sense_hat/led_matrix/clear` - Clear display (immediate update)
 - `/sense_hat/led_matrix/set_pixel` - Set individual pixel (immediate update)
 
 ### LED Matrix Topics
 
-- `/sense_hat/led_matrix/image` - Full 8x8 RGB8 image updates
+- `/sense_hat/led_matrix/image` - Full 8x8 RGB8 image updates (immediate update)
+
+### Demo Scripts
+
+- `test_pixels_fast.py` - Fast pixel testing using Python ROS2 client
+- `demo_patterns.py` - Animated patterns (rainbow, heart, fire, matrix)
+- `pixel_demo_loop.py` - Interactive demos (spinning wheel, bouncing ball, sparkles)
+- `countdown_demo.py` - Countdown from 9-0 with colored digits
+- `emoji_demo.py` - Colorful emoji display (smiley, heart, star, fire, rainbow, sun)
+- `image_display.py` - Display any image file on the LED matrix
 
 ## Features - Sensors (TODO)
 

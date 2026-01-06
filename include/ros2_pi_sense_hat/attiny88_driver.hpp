@@ -2,10 +2,12 @@
 
 #include "ros2_pi_sense_hat/i2c_device.hpp"
 #include <array>
+#include <gpiod.h>
 
 class ATTiny88Driver {
 public:
   ATTiny88Driver();
+  ~ATTiny88Driver();
   
   bool init();
   void clear();
@@ -13,6 +15,13 @@ public:
   void setAll(const uint8_t* rgb_data, size_t length);
 
 private:
+  bool initFrameSync();
+  void waitForFrameSync();
+  void cleanupFrameSync();
+  
   I2CDevice i2c_;
   std::array<uint8_t, 192> framebuffer_;
+  struct gpiod_chip* gpio_chip_;
+  struct gpiod_line* frame_int_line_;
+  bool frame_sync_enabled_;
 };
