@@ -12,18 +12,15 @@ ATTiny88Driver::~ATTiny88Driver() {
   cleanupGPIO();
 }
 
-bool ATTiny88Driver::init() {
-  if (!i2c_.open()) return false;
-  initFrameSync();
-  initJoystickInterrupt();
-  return true;
+bool ATTiny88Driver::initI2C() {
+  return i2c_.open();
 }
 
 bool ATTiny88Driver::initFrameSync() {
-  // Open GPIO chip 0
+  // Try to open GPIO chip 0 - might fail if another node already has it
   gpio_chip_ = gpiod_chip_open("/dev/gpiochip0");
   if (!gpio_chip_) {
-    printf("FRAME_INT: Failed to open gpiochip0\n");
+    printf("FRAME_INT: Failed to open gpiochip0 (another node may have it)\n");
     return false;
   }
   
@@ -31,15 +28,14 @@ bool ATTiny88Driver::initFrameSync() {
   frame_int_line_ = gpiod_chip_get_line(gpio_chip_, 24);
   if (!frame_int_line_) {
     printf("FRAME_INT: Failed to get GPIO24 line\n");
-    cleanupGPIO();
     return false;
   }
   
   // Request line for rising edge events (frame completion)
   int ret = gpiod_line_request_rising_edge_events(frame_int_line_, "sense_hat_frame_int");
   if (ret < 0) {
-    printf("FRAME_INT: Failed to request GPIO24 events\n");
-    cleanupGPIO();
+    printf("FRAME_INT: Failed to request GPIO24 events (already in use?)\n");
+    frame_int_line_ = nullptr;
     return false;
   }
   
@@ -133,7 +129,14 @@ uint8_t ATTiny88Driver::readJoystick() {
 }
 
 bool ATTiny88Driver::initJoystickInterrupt() {
-  if (!gpio_chip_) return false;
+  // Open our own GPIO chip instance
+  if (!gpio_chip_) {
+    gpio_chip_ = gpiod_chip_open("/dev/gpiochip0");
+    if (!gpio_chip_) {
+      printf("KEYS_INT: Failed to open gpiochip0\n");
+      return false;
+    }
+  }
   
   // Get GPIO23 line (KEYS_INT)
   keys_int_line_ = gpiod_chip_get_line(gpio_chip_, 23);
@@ -145,7 +148,7 @@ bool ATTiny88Driver::initJoystickInterrupt() {
   // Request line for rising edge events (button state change)
   int ret = gpiod_line_request_rising_edge_events(keys_int_line_, "sense_hat_keys_int");
   if (ret < 0) {
-    printf("KEYS_INT: Failed to request GPIO23 events\n");
+    printf("KEYS_INT: Failed to request GPIO23 events (already in use?)\n");
     keys_int_line_ = nullptr;
     return false;
   }

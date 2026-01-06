@@ -1,20 +1,30 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
-#include "sensor_msgs/msg/joy.hpp"
 #include "std_srvs/srv/trigger.hpp"
 #include "ros2_pi_sense_hat/srv/set_pixel.hpp"
-#include "ros2_pi_sense_hat/srv/read_joystick.hpp"
 #include "ros2_pi_sense_hat/attiny88_driver.hpp"
-#include <thread>
-#include <atomic>
+#include <signal.h>
+
+std::shared_ptr<rclcpp::Node> g_node = nullptr;
+
+void signalHandler(int signum) {
+  if (g_node) {
+    RCLCPP_INFO(g_node->get_logger(), "Interrupt signal (%d) received. Shutting down...", signum);
+  }
+  rclcpp::shutdown();
+  exit(signum);
+}
 
 class LEDMatrixNode : public rclcpp::Node {
 public:
-  LEDMatrixNode() : Node("led_matrix_node"), joystick_thread_running_(false) {
-    if (!driver_.init()) {
-      RCLCPP_ERROR(get_logger(), "Failed to initialize ATTINY88");
+  LEDMatrixNode() : Node("led_matrix_node") {
+    if (!driver_.initI2C()) {
+      RCLCPP_ERROR(get_logger(), "Failed to initialize I2C");
       return;
     }
+    
+    // Initialize only frame sync (GPIO24) for LED matrix
+    driver_.initFrameSync();
     
     driver_.clear();
     RCLCPP_INFO(get_logger(), "LED matrix initialized and cleared");
@@ -23,9 +33,6 @@ public:
     image_sub_ = create_subscription<sensor_msgs::msg::Image>(
       "/sense_hat/led_matrix/image", 10,
       std::bind(&LEDMatrixNode::imageCallback, this, std::placeholders::_1));
-    
-    // Publish joystick events
-    joystick_pub_ = create_publisher<sensor_msgs::msg::Joy>("/sense_hat/joystick", 10);
     
     // Service to clear display
     clear_srv_ = create_service<std_srvs::srv::Trigger>(
@@ -39,28 +46,9 @@ public:
       std::bind(&LEDMatrixNode::setPixelCallback, this,
                 std::placeholders::_1, std::placeholders::_2));
     
-    // Service to read joystick
-    joystick_srv_ = create_service<ros2_pi_sense_hat::srv::ReadJoystick>(
-      "/sense_hat/joystick/read",
-      std::bind(&LEDMatrixNode::readJoystickCallback, this,
-                std::placeholders::_1, std::placeholders::_2));
-    
     RCLCPP_INFO(get_logger(), "Subscribed to /sense_hat/led_matrix/image");
-    RCLCPP_INFO(get_logger(), "Publishing to /sense_hat/joystick");
     RCLCPP_INFO(get_logger(), "Service /sense_hat/led_matrix/clear ready");
     RCLCPP_INFO(get_logger(), "Service /sense_hat/led_matrix/set_pixel ready");
-    RCLCPP_INFO(get_logger(), "Service /sense_hat/joystick/read ready");
-    
-    // Start joystick interrupt thread
-    joystick_thread_running_ = true;
-    joystick_thread_ = std::thread(&LEDMatrixNode::joystickThreadFunc, this);
-  }
-  
-  ~LEDMatrixNode() {
-    joystick_thread_running_ = false;
-    if (joystick_thread_.joinable()) {
-      joystick_thread_.join();
-    }
   }
 
 private:
@@ -114,56 +102,21 @@ private:
     RCLCPP_INFO(get_logger(), "Display cleared via service");
   }
   
-  void readJoystickCallback(const ros2_pi_sense_hat::srv::ReadJoystick::Request::SharedPtr,
-                           ros2_pi_sense_hat::srv::ReadJoystick::Response::SharedPtr response) {
-    response->buttons = driver_.readJoystick();
-    RCLCPP_INFO(get_logger(), "Joystick read: 0x%02X", response->buttons);
-  }
-  
-  void joystickThreadFunc() {
-    uint8_t last_buttons = 0;
-    
-    while (joystick_thread_running_) {
-      // Wait for GPIO23 interrupt (button state change)
-      if (driver_.waitForJoystickEvent(100)) {
-        uint8_t buttons = driver_.readJoystick();
-        
-        if (buttons != last_buttons) {
-          // Create Joy message
-          auto joy_msg = sensor_msgs::msg::Joy();
-          joy_msg.header.stamp = this->get_clock()->now();
-          joy_msg.header.frame_id = "sense_hat_joystick";
-          
-          // Convert 5-bit button state to individual buttons
-          joy_msg.buttons.resize(5);
-          for (int i = 0; i < 5; i++) {
-            joy_msg.buttons[i] = (buttons >> i) & 1;
-          }
-          
-          // Publish event
-          joystick_pub_->publish(joy_msg);
-          RCLCPP_INFO(get_logger(), "Joystick event: 0x%02X", buttons);
-          
-          last_buttons = buttons;
-        }
-      }
-    }
-  }
-  
   ATTiny88Driver driver_;
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
-  rclcpp::Publisher<sensor_msgs::msg::Joy>::SharedPtr joystick_pub_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr clear_srv_;
   rclcpp::Service<ros2_pi_sense_hat::srv::SetPixel>::SharedPtr pixel_srv_;
-  rclcpp::Service<ros2_pi_sense_hat::srv::ReadJoystick>::SharedPtr joystick_srv_;
-  
-  std::thread joystick_thread_;
-  std::atomic<bool> joystick_thread_running_;
 };
 
 int main(int argc, char** argv) {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<LEDMatrixNode>());
+  
+  // Set up signal handlers for graceful shutdown
+  signal(SIGINT, signalHandler);
+  signal(SIGTERM, signalHandler);
+  
+  g_node = std::make_shared<LEDMatrixNode>();
+  rclcpp::spin(g_node);
   rclcpp::shutdown();
   return 0;
 }

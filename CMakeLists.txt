@@ -25,7 +25,21 @@ add_executable(led_matrix_node
   src/i2c_device.cpp
 )
 
+add_executable(joystick_node 
+  src/joystick_node.cpp 
+  src/attiny88_driver.cpp 
+  src/i2c_device.cpp
+)
+
 target_link_libraries(led_matrix_node PUBLIC
+  rclcpp::rclcpp
+  ${sensor_msgs_TARGETS}
+  ${std_msgs_TARGETS}
+  ${std_srvs_TARGETS}
+  gpiod
+)
+
+target_link_libraries(joystick_node PUBLIC
   rclcpp::rclcpp
   ${sensor_msgs_TARGETS}
   ${std_msgs_TARGETS}
@@ -40,8 +54,13 @@ target_link_libraries(led_matrix_node PUBLIC
   "${cpp_typesupport_target}"
 )
 
+target_link_libraries(joystick_node PUBLIC
+  "${cpp_typesupport_target}"
+)
+
 install(TARGETS
   led_matrix_node
+  joystick_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

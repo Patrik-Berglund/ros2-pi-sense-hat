@@ -4,4 +4,10 @@ source /opt/ros/kilted/setup.bash
 source install/setup.bash
 
 echo "Starting LED matrix node..."
-ros2 run ros2_pi_sense_hat led_matrix_node
+ros2 run ros2_pi_sense_hat led_matrix_node &
+sleep 1  # Give first node time to initialize GPIO
+
+echo "Starting joystick node..."
+ros2 run ros2_pi_sense_hat joystick_node &
+
+wait

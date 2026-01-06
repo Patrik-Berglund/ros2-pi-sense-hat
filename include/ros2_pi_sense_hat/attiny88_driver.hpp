@@ -9,18 +9,18 @@ public:
   ATTiny88Driver();
   ~ATTiny88Driver();
   
-  bool init();
+  bool initI2C();
+  bool initFrameSync();
+  bool initJoystickInterrupt();
   void clear();
   void setPixel(uint8_t x, uint8_t y, uint8_t r, uint8_t g, uint8_t b);
   void setAll(const uint8_t* rgb_data, size_t length);
   
   // Joystick functions
   uint8_t readJoystick();
-  bool initJoystickInterrupt();
   bool waitForJoystickEvent(int timeout_ms = 100);
 
 private:
-  bool initFrameSync();
   void waitForFrameSync();
   void cleanupGPIO();
   
@@ -31,4 +31,5 @@ private:
   struct gpiod_line* keys_int_line_;
   bool frame_sync_enabled_;
   bool joystick_int_enabled_;
+  bool owns_gpio_chip_;  // Track if this instance owns the chip
 };
