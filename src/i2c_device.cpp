@@ -34,3 +34,8 @@ bool I2CDevice::write(const uint8_t* data, size_t length) {
   if (fd_ < 0) return false;
   return ::write(fd_, data, length) == static_cast<ssize_t>(length);
 }
+
+bool I2CDevice::read(uint8_t* data, size_t length) {
+  if (fd_ < 0) return false;
+  return ::read(fd_, data, length) == static_cast<ssize_t>(length);
+}

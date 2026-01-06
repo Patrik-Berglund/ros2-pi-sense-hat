@@ -11,6 +11,7 @@ public:
   bool open();
   void close();
   bool write(const uint8_t* data, size_t length);
+  bool read(uint8_t* data, size_t length);
 
 private:
   std::string bus_;

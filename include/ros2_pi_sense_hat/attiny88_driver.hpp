@@ -13,15 +13,22 @@ public:
   void clear();
   void setPixel(uint8_t x, uint8_t y, uint8_t r, uint8_t g, uint8_t b);
   void setAll(const uint8_t* rgb_data, size_t length);
+  
+  // Joystick functions
+  uint8_t readJoystick();
+  bool initJoystickInterrupt();
+  bool waitForJoystickEvent(int timeout_ms = 100);
 
 private:
   bool initFrameSync();
   void waitForFrameSync();
-  void cleanupFrameSync();
+  void cleanupGPIO();
   
   I2CDevice i2c_;
   std::array<uint8_t, 192> framebuffer_;
   struct gpiod_chip* gpio_chip_;
   struct gpiod_line* frame_int_line_;
+  struct gpiod_line* keys_int_line_;
   bool frame_sync_enabled_;
+  bool joystick_int_enabled_;
 };

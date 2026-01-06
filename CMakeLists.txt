@@ -14,6 +14,7 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/SetPixel.srv"
+  "srv/ReadJoystick.srv"
 )
 
 include_directories(include)
@@ -24,17 +25,20 @@ add_executable(led_matrix_node
   src/i2c_device.cpp
 )
 
-ament_target_dependencies(led_matrix_node 
-  rclcpp 
-  sensor_msgs 
-  std_msgs 
-  std_srvs
+target_link_libraries(led_matrix_node PUBLIC
+  rclcpp::rclcpp
+  ${sensor_msgs_TARGETS}
+  ${std_msgs_TARGETS}
+  ${std_srvs_TARGETS}
+  gpiod
 )
 
-target_link_libraries(led_matrix_node gpiod)
-
-rosidl_target_interfaces(led_matrix_node
+rosidl_get_typesupport_target(cpp_typesupport_target
   ${PROJECT_NAME} "rosidl_typesupport_cpp")
+
+target_link_libraries(led_matrix_node PUBLIC
+  "${cpp_typesupport_target}"
+)
 
 install(TARGETS
   led_matrix_node
