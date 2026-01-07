@@ -6,6 +6,7 @@
 - **LED Matrix Node**: Working individually - direct I2C access to ATTINY88 (0x46)
 - **Joystick Node**: Working individually - direct I2C access to ATTINY88 (0x46) 
 - **IMU Node**: Working individually - direct I2C access to LSM9DS1 (0x6A, 0x1C)
+- More sensors to be added specified in README.md
 
 ### The Problem
 **"It never worked good after we added the IMU"**
@@ -79,7 +80,7 @@ Linux I2C subsystem allows multiple file descriptors to `/dev/i2c-1`, but concur
 ### Functional Requirements
 1. **Mutual Exclusion**: Only one I2C transaction at a time on `/dev/i2c-1`
 2. **Node Independence**: Sensor nodes maintain their own logic/calibration
-3. **GPIO Interrupt Preservation**: Must maintain GPIO24/GPIO23 interrupt handling
+3. **GPIO Interrupt Preservation**: Must maintain GPIO24/GPIO23 interrupt handling in their respective module
 4. **Performance**: Minimal latency overhead for coordination
 5. **Reliability**: Robust error handling and recovery
 6. **Backward Compatibility**: Existing ROS2 interfaces should remain unchanged
@@ -89,63 +90,3 @@ Linux I2C subsystem allows multiple file descriptors to `/dev/i2c-1`, but concur
 2. **Throughput**: Support IMU at 10Hz + LED matrix updates + joystick polling
 3. **Scalability**: Easy to add new sensor nodes
 4. **Maintainability**: Clear separation of concerns
-
-## Solution Options
-
-### Option 1: Action-Based I2C Bridge (RECOMMENDED)
-**Architecture**: Central I2C Bridge Node with ROS2 Action Server
-- **Pros**: Standard ROS2, natural queuing, good error handling
-- **Cons**: ~2-5ms latency overhead
-- **Best For**: Current requirements (10Hz IMU + on-demand LED/joystick)
-
-### Option 2: Service-Based I2C Bridge
-**Architecture**: Central I2C Bridge Node with ROS2 Services
-- **Pros**: Simple request/response, synchronous
-- **Cons**: No queuing, potential blocking
-- **Best For**: Low-frequency, synchronous operations
-
-### Option 3: Shared Memory + Mutex
-**Architecture**: Shared memory region with pthread mutex
-- **Pros**: Lowest latency, direct hardware access
-- **Cons**: Complex, not ROS2-native, harder debugging
-- **Best For**: High-frequency applications (>100Hz)
-
-### Option 4: Single Monolithic Node
-**Architecture**: Combine all sensor logic into one node
-- **Pros**: No coordination needed, simple
-- **Cons**: Poor modularity, harder to maintain
-- **Best For**: Simple applications
-
-## Implementation Plan
-
-### Phase 1: Action-Based I2C Bridge
-1. **Create I2C Bridge Node**
-   - ROS2 Action Server for I2C transactions
-   - Single I2C device manager
-   - Request queuing and serialization
-   - **CRITICAL**: GPIO interrupt handling must remain in sensor nodes
-
-2. **Define I2C Action Interface**
-   - Goal: device address, register, data, read length
-   - Result: read data, success/failure
-   - Feedback: transaction progress
-
-3. **Modify Existing Nodes**
-   - Replace direct I2C access with Action Client calls
-   - **PRESERVE**: GPIO interrupt threads and event handling
-   - **PRESERVE**: Frame sync and joystick interrupt logic
-   - Maintain existing ROS2 interfaces (services, topics)
-   - Keep sensor-specific logic intact
-
-4. **Testing & Validation**
-   - Verify no I2C conflicts
-   - Verify GPIO interrupts still work correctly
-   - Test frame sync timing for LED matrix
-   - Test joystick responsiveness
-   - Measure latency overhead
-   - Test concurrent operations
-
-### Phase 2: Optimization (if needed)
-- Profile performance bottlenecks
-- Consider Zenoh integration for ultra-low latency
-- Implement shared memory if Action overhead too high
