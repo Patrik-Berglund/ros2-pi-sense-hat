@@ -4,14 +4,16 @@
 #include <cstdio>
 #include <unistd.h>
 
-ATTiny88Driver::ATTiny88Driver(rclcpp::Node* node) 
-  : i2c_client_(node, 0x46), gpio_chip_(nullptr), frame_int_line_(nullptr), 
-    keys_int_line_(nullptr), frame_sync_enabled_(false), joystick_int_enabled_(false) {
+ATTiny88Driver::ATTiny88Driver() : i2c_("/dev/i2c-1", 0x46), gpio_chip_(nullptr), frame_int_line_(nullptr), keys_int_line_(nullptr), frame_sync_enabled_(false), joystick_int_enabled_(false) {
   framebuffer_.fill(0);
 }
 
 ATTiny88Driver::~ATTiny88Driver() {
   cleanupGPIO();
+}
+
+bool ATTiny88Driver::initI2C() {
+  return i2c_.open();
 }
 
 bool ATTiny88Driver::initFrameSync() {
@@ -79,7 +81,7 @@ void ATTiny88Driver::clear() {
   uint8_t buffer[193];
   buffer[0] = 0x00;
   std::memset(&buffer[1], 0, 192);
-  i2c_client_.write(buffer, 193);
+  i2c_.write(buffer, 193);
 }
 
 void ATTiny88Driver::setPixel(uint8_t x, uint8_t y, uint8_t r, uint8_t g, uint8_t b) {
@@ -108,15 +110,21 @@ void ATTiny88Driver::setAll(const uint8_t* rgb_data, size_t length) {
   
   // Wait for frame sync, then immediately write
   waitForFrameSync();
-  i2c_client_.write(buffer, copy_len + 1);
+  i2c_.write(buffer, copy_len + 1);
   
   // Update local framebuffer
   std::memcpy(framebuffer_.data(), &buffer[1], copy_len);
 }
 
 uint8_t ATTiny88Driver::readJoystick() {
+  uint8_t reg = 0xF2;
   uint8_t keys = 0;
-  i2c_client_.readReg(0xF2, keys);
+  
+  // Write register address then read
+  if (i2c_.write(&reg, 1)) {
+    i2c_.read(&keys, 1);
+  }
+  
   return keys & 0x1F; // Only bits 0-4 are used
 }
 

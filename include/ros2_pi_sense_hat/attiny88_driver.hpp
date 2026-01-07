@@ -1,14 +1,15 @@
 #pragma once
 
-#include "ros2_pi_sense_hat/i2c_client.hpp"
+#include "ros2_pi_sense_hat/i2c_device.hpp"
 #include <array>
 #include <gpiod.h>
 
 class ATTiny88Driver {
 public:
-  ATTiny88Driver(rclcpp::Node* node);
+  ATTiny88Driver();
   ~ATTiny88Driver();
   
+  bool initI2C();
   bool initFrameSync();
   bool initJoystickInterrupt();
   void clear();
@@ -23,11 +24,12 @@ private:
   void waitForFrameSync();
   void cleanupGPIO();
   
-  I2CClient i2c_client_;
+  I2CDevice i2c_;
   std::array<uint8_t, 192> framebuffer_;
   struct gpiod_chip* gpio_chip_;
   struct gpiod_line* frame_int_line_;
   struct gpiod_line* keys_int_line_;
   bool frame_sync_enabled_;
   bool joystick_int_enabled_;
+  bool owns_gpio_chip_;  // Track if this instance owns the chip
 };
