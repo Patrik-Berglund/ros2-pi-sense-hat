@@ -99,24 +99,38 @@ During investigation phase:
 
 ## ROS2 Development Tools
 
+### Workspace Setup (First Time Only)
+```bash
+# Create workspace and link package
+cd /home/patrik
+mkdir -p ros2_ws/src
+cd ros2_ws/src
+ln -sf ../../ros2-pi-sense-hat .
+```
+
 ### Build and Run
 ```bash
+# Source ROS2 environment
+source /opt/ros/kilted/setup.bash
+
 # Build workspace
 cd ~/ros2_ws
-colcon build --packages-select <package_name>
+colcon build --packages-select ros2_pi_sense_hat
 source install/setup.bash
 
 # Build with verbose output
-colcon build --packages-select <package_name> --event-handlers console_direct+
+colcon build --packages-select ros2_pi_sense_hat --event-handlers console_direct+
 
 # Clean build
-colcon build --packages-select <package_name> --cmake-clean-cache
+colcon build --packages-select ros2_pi_sense_hat --cmake-clean-cache
 
-# Run nodes
-ros2 run <package_name> <node_name>
+# Run nodes (available: led_matrix_node, joystick_node, imu_node)
+ros2 run ros2_pi_sense_hat led_matrix_node
+ros2 run ros2_pi_sense_hat joystick_node
+ros2 run ros2_pi_sense_hat imu_node
 
 # Launch files
-ros2 launch <package_name> <launch_file>
+ros2 launch ros2_pi_sense_hat <launch_file>
 ```
 
 ### Testing and Debugging
