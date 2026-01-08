@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <linux/i2c-dev.h>
+#include <linux/i2c.h>
 
 I2CDevice::I2CDevice(const std::string& bus, uint8_t address)
   : bus_(bus), address_(address), fd_(-1) {}
@@ -48,8 +49,15 @@ bool I2CDevice::writeReg(uint8_t reg, uint8_t value) {
 
 bool I2CDevice::readReg(uint8_t reg, uint8_t& value) {
   if (fd_ < 0) return false;
-  if (!write(&reg, 1)) return false;  // Write register address
-  return read(&value, 1);             // Read register value
+  
+  // Use I2C_RDWR for atomic write+read transaction
+  struct i2c_msg msgs[2] = {
+    {address_, 0, 1, &reg},                    // Write register address
+    {address_, I2C_M_RD, 1, &value}           // Read register value
+  };
+  
+  struct i2c_rdwr_ioctl_data data = {msgs, 2};
+  return ioctl(fd_, I2C_RDWR, &data) >= 0;
 }
 
 bool I2CDevice::readMultiReg(uint8_t reg, uint8_t* data, size_t length, bool auto_increment) {
@@ -58,8 +66,14 @@ bool I2CDevice::readMultiReg(uint8_t reg, uint8_t* data, size_t length, bool aut
   // Set MSB for auto-increment if requested (magnetometer style)
   uint8_t reg_addr = auto_increment ? (reg | 0x80) : reg;
   
-  if (!write(&reg_addr, 1)) return false;  // Write register address
-  return read(data, length);               // Read multiple bytes
+  // Use I2C_RDWR for atomic write+read transaction
+  struct i2c_msg msgs[2] = {
+    {address_, 0, 1, &reg_addr},               // Write register address
+    {address_, I2C_M_RD, static_cast<__u16>(length), data}  // Read multiple bytes
+  };
+  
+  struct i2c_rdwr_ioctl_data ioctl_data = {msgs, 2};
+  return ioctl(fd_, I2C_RDWR, &ioctl_data) >= 0;
 }
 
 bool I2CDevice::readReg16(uint8_t reg, int16_t& value, bool auto_increment) {
