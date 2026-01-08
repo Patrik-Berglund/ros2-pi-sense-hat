@@ -73,30 +73,26 @@ bool LSM9DS1Driver::init() {
 }
 
 bool LSM9DS1Driver::readAllSensors(IMUData& data) {
-  // Read gyroscope (6 bytes from 0x18) and accelerometer (6 bytes from 0x28) separately
-  // Temperature is at 0x15-0x16, not included in burst reads
-  uint8_t gyro_data[6];
-  if (!accel_gyro_.readMultiReg(0x18, gyro_data, 6, false)) {
+  // Use 12-byte burst read from OUT_X_G (0x18) - hardware auto-wraps to accel registers
+  // Based on datasheet section 3.3: "starting from OUT_X_G (18h - 19h) multiple reads can be performed"
+  uint8_t burst_data[12];
+  if (!accel_gyro_.readMultiReg(0x18, burst_data, 12, false)) {
     return false;
   }
   
-  uint8_t accel_data[6];
-  if (!accel_gyro_.readMultiReg(0x28, accel_data, 6, false)) {
-    return false;
-  }
-  
+  // Read temperature separately (not part of burst sequence)
   uint8_t temp_data[2];
   if (!accel_gyro_.readMultiReg(0x15, temp_data, 2, false)) {
     return false;
   }
   
-  // Parse data with ST endianness (high byte first, then low byte)
-  int16_t raw_gyro_x = (int16_t)((gyro_data[1] << 8) | gyro_data[0]);
-  int16_t raw_gyro_y = (int16_t)((gyro_data[3] << 8) | gyro_data[2]);
-  int16_t raw_gyro_z = (int16_t)((gyro_data[5] << 8) | gyro_data[4]);
-  int16_t raw_accel_x = (int16_t)((accel_data[1] << 8) | accel_data[0]);
-  int16_t raw_accel_y = (int16_t)((accel_data[3] << 8) | accel_data[2]);
-  int16_t raw_accel_z = (int16_t)((accel_data[5] << 8) | accel_data[4]);
+  // Parse burst data: gyro (0-5), then accel (6-11) due to hardware auto-wrap
+  int16_t raw_gyro_x = (int16_t)((burst_data[1] << 8) | burst_data[0]);
+  int16_t raw_gyro_y = (int16_t)((burst_data[3] << 8) | burst_data[2]);
+  int16_t raw_gyro_z = (int16_t)((burst_data[5] << 8) | burst_data[4]);
+  int16_t raw_accel_x = (int16_t)((burst_data[7] << 8) | burst_data[6]);
+  int16_t raw_accel_y = (int16_t)((burst_data[9] << 8) | burst_data[8]);
+  int16_t raw_accel_z = (int16_t)((burst_data[11] << 8) | burst_data[10]);
   int16_t raw_temp = (int16_t)((temp_data[1] << 8) | temp_data[0]);
   
   // Convert to physical units
