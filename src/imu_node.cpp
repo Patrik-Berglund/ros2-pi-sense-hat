@@ -130,6 +130,33 @@ public:
     std::string cal_filename = "imu_calibration.yaml";
     if (calibration_.loadCalibration(cal_filename)) {
       RCLCPP_INFO(get_logger(), "Loaded calibration from %s", cal_filename.c_str());
+      
+      // Display loaded calibration values
+      const auto& cal_data = calibration_.getCalibrationData();
+      
+      if (cal_data.gyro_calibrated) {
+        RCLCPP_INFO(get_logger(), "  Gyro bias: [%.6f, %.6f, %.6f] rad/s", 
+                    cal_data.gyro_bias_x, cal_data.gyro_bias_y, cal_data.gyro_bias_z);
+      } else {
+        RCLCPP_INFO(get_logger(), "  Gyro: NOT calibrated");
+      }
+      
+      if (cal_data.accel_calibrated) {
+        RCLCPP_INFO(get_logger(), "  Accel offset: [%.6f, %.6f, %.6f] m/s²", 
+                    cal_data.accel_offset_x, cal_data.accel_offset_y, cal_data.accel_offset_z);
+        RCLCPP_INFO(get_logger(), "  Accel scale: [%.6f, %.6f, %.6f]", 
+                    cal_data.accel_scale_x, cal_data.accel_scale_y, cal_data.accel_scale_z);
+      } else {
+        RCLCPP_INFO(get_logger(), "  Accel: NOT calibrated");
+      }
+      
+      if (cal_data.mag_calibrated) {
+        RCLCPP_INFO(get_logger(), "  Mag offset: [%.6f, %.6f, %.6f] Tesla", 
+                    cal_data.mag_offset_x, cal_data.mag_offset_y, cal_data.mag_offset_z);
+      } else {
+        RCLCPP_INFO(get_logger(), "  Mag: NOT calibrated");
+      }
+      
     } else {
       RCLCPP_INFO(get_logger(), "No calibration file found, using factory defaults");
     }
