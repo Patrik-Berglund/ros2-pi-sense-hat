@@ -58,10 +58,12 @@ ekf_filter_node:
                   true,  true,  true,  # Use orientation (roll, pitch, yaw)
                   false, false, false, # No velocity
                   true,  true,  true,  # Use angular velocity
-                  true,  true,  true]  # Use linear acceleration
-    imu0_differential: true            # Critical for IMU-only navigation
+                  false, false, false] # No linear acceleration - DISABLED
+    imu0_differential: false           # Use absolute orientation from Madgwick
     imu0_relative: false
 ```
+
+**Critical Configuration Note**: Linear acceleration is disabled (`imu0_config` last 3 values: `false`) because accelerometer-only position estimation causes severe drift. Without additional position sensors (wheel encoders, GPS, visual odometry), integrating accelerometer noise leads to unbounded position errors. The EKF is configured for orientation-only tracking, providing stable attitude estimation suitable for control applications.
 
 ## Startup Sequence (`demo/run_node.sh`)
 
