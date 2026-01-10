@@ -25,7 +25,9 @@ static const uint8_t WHO_AM_I_M_VAL = 0x3D;
 LSM9DS1Driver::LSM9DS1Driver() 
   : accel_gyro_("/dev/i2c-1", LSM9DS1_AG_ADDR),
     magnetometer_("/dev/i2c-1", LSM9DS1_M_ADDR),
-    accel_range_(2), gyro_range_(245), mag_range_(4) {
+    imu_odr_(119), accel_range_(2), gyro_range_(245),
+    mag_odr_(10), mag_range_(4), accel_bw_auto_(true), accel_bw_(1),
+    mag_performance_mode_(2), mag_temp_comp_(true) {
 }
 
 LSM9DS1Driver::~LSM9DS1Driver() {
@@ -48,28 +50,17 @@ bool LSM9DS1Driver::init() {
   if (magnetometer_.open()) {
     uint8_t who_am_i_m;
     if (magnetometer_.readReg(WHO_AM_I_M, who_am_i_m) && who_am_i_m == WHO_AM_I_M_VAL) {
-      // Configure magnetometer
-      // CTRL_REG1_M: TEMP_COMP=1, OM=10 (high-perf), DO=101 (20Hz)
-      magnetometer_.writeReg(CTRL_REG1_M, 0x9C);
-      
-      // CTRL_REG2_M: FS=00 (±4 gauss)
-      magnetometer_.writeReg(CTRL_REG2_M, 0x00);
-      
-      // CTRL_REG3_M: MD=00 (continuous mode)
-      magnetometer_.writeReg(CTRL_REG3_M, 0x00);
+      // Configure magnetometer with current settings
+      if (!setMagConfig(mag_odr_, mag_range_, mag_performance_mode_, mag_temp_comp_)) {
+        magnetometer_.close();
+      }
     } else {
       magnetometer_.close();
     }
   }
 
-  // Configure both accel+gyro (activates both at same ODR)
-  // CTRL_REG1_G: ODR=119Hz (011), FS=245dps (00), BW=default (00)
-  if (!accel_gyro_.writeReg(CTRL_REG1_G, 0x60)) return false;
-  
-  // Enable accelerometer: CTRL_REG6_XL: ODR=119Hz (011), FS=2g (00)
-  if (!accel_gyro_.writeReg(CTRL_REG6_XL, 0x60)) return false;
-  
-  return true;
+  // Configure IMU with current settings (both accel+gyro)
+  return setIMUConfig(imu_odr_, accel_range_, gyro_range_, accel_bw_auto_, accel_bw_);
 }
 
 bool LSM9DS1Driver::readAllSensors(IMUData& data) {
@@ -129,60 +120,167 @@ bool LSM9DS1Driver::readAllSensors(IMUData& data) {
   return true;
 }
 
-bool LSM9DS1Driver::setAccelRange(int range_g) {
-  uint8_t fs_xl;
-  switch(range_g) {
-    case 2:  fs_xl = 0b00; break;  // ±2g
-    case 4:  fs_xl = 0b10; break;  // ±4g
-    case 8:  fs_xl = 0b11; break;  // ±8g
-    case 16: fs_xl = 0b01; break;  // ±16g
-    default: return false;
+bool LSM9DS1Driver::setIMUConfig(int odr_hz, int accel_range_g, int gyro_range_dps, 
+                                 bool accel_bw_auto, int accel_bw) {
+  // Validate parameters
+  uint8_t odr_bits = getODRBits(odr_hz);
+  uint8_t accel_fs_bits = getAccelFSBits(accel_range_g);
+  uint8_t gyro_fs_bits = getGyroFSBits(gyro_range_dps);
+  
+  if (odr_bits == 0xFF || accel_fs_bits == 0xFF || gyro_fs_bits == 0xFF) {
+    return false;
   }
   
-  // CTRL_REG6_XL: ODR=119Hz (011), FS_XL=range
-  uint8_t reg_val = (0b011 << 5) | (fs_xl << 3);
-  if (accel_gyro_.writeReg(CTRL_REG6_XL, reg_val)) {
-    accel_range_ = range_g;
-    return true;
+  if (!accel_bw_auto && (accel_bw < 0 || accel_bw > 3)) {
+    return false;
   }
-  return false;
+  
+  // CRITICAL: Configure CTRL_REG1_G first - this controls ODR for both sensors when both are active
+  // CTRL_REG1_G: ODR_G[7:5], FS_G[4:3], 0, BW_G[1:0]
+  uint8_t ctrl_reg1_g = (odr_bits << 5) | (gyro_fs_bits << 3) | 0x00; // BW_G=00 (default)
+  if (!accel_gyro_.writeReg(CTRL_REG1_G, ctrl_reg1_g)) {
+    return false;
+  }
+  
+  // Configure CTRL_REG6_XL - ODR bits are ignored when gyro is active, only FS and BW matter
+  // CTRL_REG6_XL: ODR_XL[7:5] (ignored), FS_XL[4:3], BW_SCAL_ODR[2], BW_XL[1:0]
+  uint8_t bw_scal_odr = accel_bw_auto ? 0 : 1;
+  uint8_t bw_xl = accel_bw_auto ? 0 : (accel_bw & 0x03);
+  uint8_t ctrl_reg6_xl = (0b011 << 5) | (accel_fs_bits << 3) | (bw_scal_odr << 2) | bw_xl;
+  if (!accel_gyro_.writeReg(CTRL_REG6_XL, ctrl_reg6_xl)) {
+    return false;
+  }
+  
+  // Update stored configuration
+  imu_odr_ = odr_hz;
+  accel_range_ = accel_range_g;
+  gyro_range_ = gyro_range_dps;
+  accel_bw_auto_ = accel_bw_auto;
+  accel_bw_ = accel_bw;
+  
+  return true;
+}
+
+bool LSM9DS1Driver::setMagConfig(int odr_hz, int range_gauss, int performance_mode, bool temp_comp) {
+  if (!magnetometer_.isOpen()) {
+    return false;
+  }
+  
+  // Validate parameters
+  uint8_t odr_bits = getMagODRBits(odr_hz);
+  uint8_t fs_bits = getMagFSBits(range_gauss);
+  uint8_t om_bits = getMagOMBits(performance_mode);
+  
+  if (odr_bits == 0xFF || fs_bits == 0xFF || om_bits == 0xFF) {
+    return false;
+  }
+  
+  // CTRL_REG1_M: TEMP_COMP[7], OM[6:5], DO[4:2], 0, ST[0]
+  uint8_t ctrl_reg1_m = (temp_comp ? 0x80 : 0x00) | (om_bits << 5) | (odr_bits << 2) | 0x00;
+  if (!magnetometer_.writeReg(CTRL_REG1_M, ctrl_reg1_m)) {
+    return false;
+  }
+  
+  // CTRL_REG2_M: 0, FS[6:5], 0[4:0]
+  uint8_t ctrl_reg2_m = (fs_bits << 5);
+  if (!magnetometer_.writeReg(CTRL_REG2_M, ctrl_reg2_m)) {
+    return false;
+  }
+  
+  // CTRL_REG3_M: I2C_DISABLE[7], 0[6:3], LP[2], 0[1], MD[1:0] - continuous mode (00)
+  if (!magnetometer_.writeReg(CTRL_REG3_M, 0x00)) {
+    return false;
+  }
+  
+  // Update stored configuration
+  mag_odr_ = odr_hz;
+  mag_range_ = range_gauss;
+  mag_performance_mode_ = performance_mode;
+  mag_temp_comp_ = temp_comp;
+  
+  return true;
+}
+
+// Legacy methods for compatibility
+bool LSM9DS1Driver::setAccelRange(int range_g) {
+  return setIMUConfig(imu_odr_, range_g, gyro_range_, accel_bw_auto_, accel_bw_);
 }
 
 bool LSM9DS1Driver::setGyroRange(int range_dps) {
-  uint8_t fs_g;
-  switch(range_dps) {
-    case 245:  fs_g = 0b00; break;  // ±245 dps
-    case 500:  fs_g = 0b01; break;  // ±500 dps
-    case 2000: fs_g = 0b11; break;  // ±2000 dps
-    default: return false;
-  }
-  
-  // CTRL_REG1_G: ODR=119Hz (011), FS_G=range, BW=default (00)
-  uint8_t reg_val = (0b011 << 5) | (fs_g << 3) | 0b00;
-  if (accel_gyro_.writeReg(CTRL_REG1_G, reg_val)) {
-    gyro_range_ = range_dps;
-    return true;
-  }
-  return false;
+  return setIMUConfig(imu_odr_, accel_range_, range_dps, accel_bw_auto_, accel_bw_);
 }
 
 bool LSM9DS1Driver::setMagRange(int range_gauss) {
-  uint8_t fs_m;
+  return setMagConfig(mag_odr_, range_gauss, mag_performance_mode_, mag_temp_comp_);
+}
+
+// Helper methods for bit mapping
+uint8_t LSM9DS1Driver::getODRBits(int odr_hz) const {
+  switch(odr_hz) {
+    case 0:   return 0b000;  // Power-down
+    case 14:  return 0b001;  // 14.9 Hz (closest to 14)
+    case 15:  return 0b001;  // 14.9 Hz
+    case 59:  return 0b010;  // 59.5 Hz (closest to 59)
+    case 60:  return 0b010;  // 59.5 Hz (closest to 60)
+    case 119: return 0b011;  // 119 Hz
+    case 238: return 0b100;  // 238 Hz
+    case 476: return 0b101;  // 476 Hz
+    case 952: return 0b110;  // 952 Hz
+    default:  return 0xFF;   // Invalid
+  }
+}
+
+uint8_t LSM9DS1Driver::getAccelFSBits(int range_g) const {
+  switch(range_g) {
+    case 2:  return 0b00;  // ±2g
+    case 4:  return 0b10;  // ±4g
+    case 8:  return 0b11;  // ±8g
+    case 16: return 0b01;  // ±16g
+    default: return 0xFF;  // Invalid
+  }
+}
+
+uint8_t LSM9DS1Driver::getGyroFSBits(int range_dps) const {
+  switch(range_dps) {
+    case 245:  return 0b00;  // ±245 dps
+    case 500:  return 0b01;  // ±500 dps
+    case 2000: return 0b11;  // ±2000 dps
+    default:   return 0xFF;  // Invalid
+  }
+}
+
+uint8_t LSM9DS1Driver::getMagFSBits(int range_gauss) const {
   switch(range_gauss) {
-    case 4:  fs_m = 0b00; break;  // ±4 gauss
-    case 8:  fs_m = 0b01; break;  // ±8 gauss
-    case 12: fs_m = 0b10; break;  // ±12 gauss
-    case 16: fs_m = 0b11; break;  // ±16 gauss
-    default: return false;
+    case 4:  return 0b00;  // ±4 gauss
+    case 8:  return 0b01;  // ±8 gauss
+    case 12: return 0b10;  // ±12 gauss
+    case 16: return 0b11;  // ±16 gauss
+    default: return 0xFF;  // Invalid
   }
-  
-  // CTRL_REG2_M: FS=range
-  uint8_t reg_val = (fs_m << 5);
-  if (magnetometer_.writeReg(CTRL_REG2_M, reg_val)) {
-    mag_range_ = range_gauss;
-    return true;
+}
+
+uint8_t LSM9DS1Driver::getMagODRBits(int odr_hz) const {
+  // Handle fractional ODRs by checking closest match
+  if (odr_hz == 0) return 0xFF;  // Power-down not supported in our config
+  if (odr_hz <= 1) return 0b000;  // 0.625 Hz (closest to 1)
+  if (odr_hz <= 2) return 0b001;  // 1.25 Hz (closest to 1-2)
+  if (odr_hz <= 3) return 0b010;  // 2.5 Hz (closest to 3)
+  if (odr_hz <= 5) return 0b011;  // 5 Hz
+  if (odr_hz <= 10) return 0b100; // 10 Hz
+  if (odr_hz <= 20) return 0b101; // 20 Hz
+  if (odr_hz <= 40) return 0b110; // 40 Hz
+  if (odr_hz <= 80) return 0b111; // 80 Hz
+  return 0xFF;  // Invalid
+}
+
+uint8_t LSM9DS1Driver::getMagOMBits(int performance_mode) const {
+  switch(performance_mode) {
+    case 0: return 0b00;  // Low-power
+    case 1: return 0b01;  // Medium-performance
+    case 2: return 0b10;  // High-performance
+    case 3: return 0b11;  // Ultra-high performance
+    default: return 0xFF; // Invalid
   }
-  return false;
 }
 
 float LSM9DS1Driver::getAccelSensitivity() const {

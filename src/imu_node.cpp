@@ -8,21 +8,48 @@
 class IMUNode : public rclcpp::Node {
 public:
   IMUNode() : Node("imu_node") {
-    // Declare parameters
+    // Declare parameters with validation
     declare_parameter("publish_rate", 10);
+    
+    // IMU parameters (shared ODR for accel+gyro)
+    declare_parameter("imu_odr", 119);
     declare_parameter("accel_range", 2);
     declare_parameter("gyro_range", 245);
+    declare_parameter("accel_bandwidth_auto", true);
+    declare_parameter("accel_bandwidth", 1);
+    
+    // Magnetometer parameters (independent)
+    declare_parameter("mag_odr", 10);
     declare_parameter("mag_range", 4);
+    declare_parameter("mag_performance_mode", 2);
+    declare_parameter("mag_temp_compensation", true);
+    
+    // Standard parameters
     declare_parameter("frame_id", "imu_link");
     declare_parameter("enable_magnetometer", true);
     
-    // Get parameters
+    // Get and validate parameters
     int publish_rate = get_parameter("publish_rate").as_int();
+    int imu_odr = get_parameter("imu_odr").as_int();
     int accel_range = get_parameter("accel_range").as_int();
     int gyro_range = get_parameter("gyro_range").as_int();
+    bool accel_bw_auto = get_parameter("accel_bandwidth_auto").as_bool();
+    int accel_bw = get_parameter("accel_bandwidth").as_int();
+    
+    int mag_odr = get_parameter("mag_odr").as_int();
     int mag_range = get_parameter("mag_range").as_int();
+    int mag_perf_mode = get_parameter("mag_performance_mode").as_int();
+    bool mag_temp_comp = get_parameter("mag_temp_compensation").as_bool();
+    
     frame_id_ = get_parameter("frame_id").as_string();
     enable_mag_ = get_parameter("enable_magnetometer").as_bool();
+
+    // Validate parameters
+    if (!validateParameters(imu_odr, accel_range, gyro_range, accel_bw_auto, accel_bw,
+                           mag_odr, mag_range, mag_perf_mode)) {
+      RCLCPP_ERROR(get_logger(), "Invalid parameter configuration");
+      return;
+    }
 
     // Initialize driver
     if (!driver_.init()) {
@@ -30,10 +57,19 @@ public:
       return;
     }
     
-    // Configure ranges
-    driver_.setAccelRange(accel_range);
-    driver_.setGyroRange(gyro_range);
-    driver_.setMagRange(mag_range);
+    // Configure IMU with parameters
+    if (!driver_.setIMUConfig(imu_odr, accel_range, gyro_range, accel_bw_auto, accel_bw)) {
+      RCLCPP_ERROR(get_logger(), "Failed to configure IMU");
+      return;
+    }
+    
+    // Configure magnetometer if enabled
+    if (enable_mag_) {
+      if (!driver_.setMagConfig(mag_odr, mag_range, mag_perf_mode, mag_temp_comp)) {
+        RCLCPP_WARN(get_logger(), "Failed to configure magnetometer - continuing without it");
+        enable_mag_ = false;
+      }
+    }
 
     // Create publishers
     imu_pub_ = create_publisher<sensor_msgs::msg::Imu>("/sense_hat/imu/data_raw", 10);
@@ -52,10 +88,68 @@ public:
       std::chrono::milliseconds(1000 / publish_rate),
       std::bind(&IMUNode::publishData, this));
 
-    RCLCPP_INFO(get_logger(), "IMU node initialized - publishing at %d Hz", publish_rate);
+    RCLCPP_INFO(get_logger(), "IMU node initialized:");
+    RCLCPP_INFO(get_logger(), "  IMU ODR: %d Hz, Accel: ±%dg, Gyro: ±%d dps", 
+                imu_odr, accel_range, gyro_range);
+    RCLCPP_INFO(get_logger(), "  Accel BW: %s (%d)", accel_bw_auto ? "auto" : "manual", accel_bw);
+    if (enable_mag_) {
+      RCLCPP_INFO(get_logger(), "  Mag ODR: %d Hz, Range: ±%d gauss, Mode: %d", 
+                  mag_odr, mag_range, mag_perf_mode);
+    }
+    RCLCPP_INFO(get_logger(), "  Publishing at %d Hz", publish_rate);
   }
 
 private:
+  bool validateParameters(int imu_odr, int accel_range, int gyro_range, 
+                         bool accel_bw_auto, int accel_bw,
+                         int mag_odr, int mag_range, int mag_perf_mode) {
+    // Validate IMU ODR
+    if (imu_odr != 0 && imu_odr != 14 && imu_odr != 15 && imu_odr != 59 && 
+        imu_odr != 60 && imu_odr != 119 && imu_odr != 238 && 
+        imu_odr != 476 && imu_odr != 952) {
+      RCLCPP_ERROR(get_logger(), "Invalid imu_odr: %d. Valid: 0,14,15,59,60,119,238,476,952", imu_odr);
+      return false;
+    }
+    
+    // Validate accelerometer range
+    if (accel_range != 2 && accel_range != 4 && accel_range != 8 && accel_range != 16) {
+      RCLCPP_ERROR(get_logger(), "Invalid accel_range: %d. Valid: 2,4,8,16", accel_range);
+      return false;
+    }
+    
+    // Validate gyroscope range
+    if (gyro_range != 245 && gyro_range != 500 && gyro_range != 2000) {
+      RCLCPP_ERROR(get_logger(), "Invalid gyro_range: %d. Valid: 245,500,2000", gyro_range);
+      return false;
+    }
+    
+    // Validate accelerometer bandwidth
+    if (!accel_bw_auto && (accel_bw < 0 || accel_bw > 3)) {
+      RCLCPP_ERROR(get_logger(), "Invalid accel_bandwidth: %d. Valid: 0-3", accel_bw);
+      return false;
+    }
+    
+    // Validate magnetometer ODR
+    if (mag_odr < 0 || mag_odr > 80) {
+      RCLCPP_ERROR(get_logger(), "Invalid mag_odr: %d. Valid: 0-80", mag_odr);
+      return false;
+    }
+    
+    // Validate magnetometer range
+    if (mag_range != 4 && mag_range != 8 && mag_range != 12 && mag_range != 16) {
+      RCLCPP_ERROR(get_logger(), "Invalid mag_range: %d. Valid: 4,8,12,16", mag_range);
+      return false;
+    }
+    
+    // Validate magnetometer performance mode
+    if (mag_perf_mode < 0 || mag_perf_mode > 3) {
+      RCLCPP_ERROR(get_logger(), "Invalid mag_performance_mode: %d. Valid: 0-3", mag_perf_mode);
+      return false;
+    }
+    
+    return true;
+  }
+
   void publishData() {
     IMUData data;
     if (!driver_.readAllSensors(data)) {
