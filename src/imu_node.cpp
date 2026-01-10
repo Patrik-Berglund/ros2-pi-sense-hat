@@ -3,7 +3,19 @@
 #include "sensor_msgs/msg/temperature.hpp"
 #include "sensor_msgs/msg/magnetic_field.hpp"
 #include "std_srvs/srv/trigger.hpp"
+#include <signal.h>
 #include "ros2_pi_sense_hat/lsm9ds1_driver.hpp"
+#include "ros2_pi_sense_hat/imu_calibration.hpp"
+
+// Global pointer for signal handler
+static std::shared_ptr<rclcpp::Node> g_node = nullptr;
+
+void signalHandler(int signum) {
+  if (g_node) {
+    RCLCPP_INFO(g_node->get_logger(), "Interrupt signal (%d) received. Shutting down...", signum);
+    rclcpp::shutdown();
+  }
+}
 
 class IMUNode : public rclcpp::Node {
 public:
@@ -78,10 +90,26 @@ public:
       mag_pub_ = create_publisher<sensor_msgs::msg::MagneticField>("/sense_hat/imu/mag", 10);
     }
 
-    // Create service
+    // Create services
     calibrate_srv_ = create_service<std_srvs::srv::Trigger>(
       "/sense_hat/imu/calibrate",
       std::bind(&IMUNode::calibrateCallback, this, std::placeholders::_1, std::placeholders::_2));
+    
+    calibrate_gyro_srv_ = create_service<std_srvs::srv::Trigger>(
+      "/sense_hat/imu/calibrate_gyro",
+      std::bind(&IMUNode::calibrateGyroCallback, this, std::placeholders::_1, std::placeholders::_2));
+    
+    calibrate_accel_srv_ = create_service<std_srvs::srv::Trigger>(
+      "/sense_hat/imu/calibrate_accel",
+      std::bind(&IMUNode::calibrateAccelCallback, this, std::placeholders::_1, std::placeholders::_2));
+    
+    calibrate_mag_srv_ = create_service<std_srvs::srv::Trigger>(
+      "/sense_hat/imu/calibrate_mag",
+      std::bind(&IMUNode::calibrateMagCallback, this, std::placeholders::_1, std::placeholders::_2));
+    
+    save_calibration_srv_ = create_service<std_srvs::srv::Trigger>(
+      "/sense_hat/imu/save_calibration",
+      std::bind(&IMUNode::saveCalibrationCallback, this, std::placeholders::_1, std::placeholders::_2));
 
     // Create timer
     timer_ = create_wall_timer(
@@ -97,6 +125,14 @@ public:
                   mag_odr, mag_range, mag_perf_mode);
     }
     RCLCPP_INFO(get_logger(), "  Publishing at %d Hz", publish_rate);
+    
+    // Load existing calibration if available
+    std::string cal_filename = "imu_calibration.yaml";
+    if (calibration_.loadCalibration(cal_filename)) {
+      RCLCPP_INFO(get_logger(), "Loaded calibration from %s", cal_filename.c_str());
+    } else {
+      RCLCPP_INFO(get_logger(), "No calibration file found, using factory defaults");
+    }
   }
 
 private:
@@ -157,6 +193,9 @@ private:
       return;
     }
 
+    // Apply calibration to sensor data
+    calibration_.correctIMUData(data);
+
     auto stamp = now();
 
     // Publish IMU message (accel + gyro)
@@ -206,11 +245,38 @@ private:
 
   void calibrateCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request>,
                         std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
-    response->success = true;
-    response->message = "Calibration not implemented - using factory calibration";
+    response->success = false;
+    response->message = "Use Python calibration service: python3 demo/calibrate_imu.py";
+  }
+
+  void calibrateGyroCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request>,
+                            std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+    response->success = false;
+    response->message = "Use Python calibration service: python3 demo/calibrate_imu.py gyro";
+  }
+
+  void calibrateAccelCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request>,
+                             std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+    response->success = false;
+    response->message = "Use Python calibration service: python3 demo/calibrate_imu.py accel";
+  }
+
+  void calibrateMagCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request>,
+                           std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+    response->success = false;
+    response->message = "Use Python calibration service: python3 demo/calibrate_imu.py mag";
+  }
+
+  void saveCalibrationCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request>,
+                              std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+    std::string filename = "imu_calibration.yaml";
+    bool success = calibration_.saveCalibration(filename);
+    response->success = success;
+    response->message = success ? "Calibration data saved to " + filename : "Failed to save calibration data";
   }
 
   LSM9DS1Driver driver_;
+  IMUCalibration calibration_;
   std::string frame_id_;
   bool enable_mag_;
   
@@ -218,12 +284,24 @@ private:
   rclcpp::Publisher<sensor_msgs::msg::Temperature>::SharedPtr temp_pub_;
   rclcpp::Publisher<sensor_msgs::msg::MagneticField>::SharedPtr mag_pub_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr calibrate_srv_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr calibrate_gyro_srv_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr calibrate_accel_srv_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr calibrate_mag_srv_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr save_calibration_srv_;
   rclcpp::TimerBase::SharedPtr timer_;
 };
 
 int main(int argc, char** argv) {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<IMUNode>());
+  
+  auto node = std::make_shared<IMUNode>();
+  g_node = node;
+  
+  // Set up signal handlers for graceful shutdown
+  signal(SIGINT, signalHandler);
+  signal(SIGTERM, signalHandler);
+  
+  rclcpp::spin(node);
   rclcpp::shutdown();
   return 0;
 }

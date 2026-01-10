@@ -14,4 +14,5 @@ sleep 2  # Wait for joystick to finish I2C initialization
 echo "Starting IMU node..."
 ros2 run ros2_pi_sense_hat imu_node &
 
+echo "All nodes started. Press Ctrl+C to stop all nodes."
 wait

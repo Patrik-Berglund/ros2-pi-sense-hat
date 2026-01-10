@@ -6,7 +6,7 @@
 struct IMUData {
   float accel_x, accel_y, accel_z;  // m/s²
   float gyro_x, gyro_y, gyro_z;     // rad/s
-  float mag_x, mag_y, mag_z;        // gauss
+  float mag_x, mag_y, mag_z;        // Tesla (ROS2 standard)
   float temperature;                // °C
 };
 

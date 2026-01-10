@@ -34,6 +34,7 @@ add_executable(joystick_node
 add_executable(imu_node
   src/imu_node.cpp
   src/lsm9ds1_driver.cpp
+  src/imu_calibration.cpp
   src/i2c_device.cpp
 )
 

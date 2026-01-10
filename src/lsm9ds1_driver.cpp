@@ -111,9 +111,10 @@ bool LSM9DS1Driver::readAllSensors(IMUData& data) {
       int16_t raw_mag_z = (int16_t)((mag_data[5] << 8) | mag_data[4]);
       
       float mag_sens = getMagSensitivity();
-      data.mag_x = raw_mag_x * mag_sens / 1000.0f;
-      data.mag_y = raw_mag_y * mag_sens / 1000.0f;
-      data.mag_z = raw_mag_z * mag_sens / 1000.0f;
+      // Convert to Tesla (ROS2 standard): 1 gauss = 0.0001 Tesla
+      data.mag_x = raw_mag_x * mag_sens / 1000.0f * 0.0001f;  // mgauss -> gauss -> Tesla
+      data.mag_y = raw_mag_y * mag_sens / 1000.0f * 0.0001f;  // mgauss -> gauss -> Tesla
+      data.mag_z = raw_mag_z * mag_sens / 1000.0f * 0.0001f;  // mgauss -> gauss -> Tesla
     }
   }
   

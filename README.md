@@ -130,12 +130,15 @@ python3 image_display.py image.png  # Display any image file (resized to 8x8)
 - `emoji_demo.py` - Colorful emoji display (smiley, heart, star, fire, rainbow, sun)
 - `image_display.py` - Display any image file on the LED matrix
 
-## Features - IMU (PARTIAL - Accelerometer/Gyroscope Only)
+## Features - IMU (REFACTORED: C++/Python Split)
 
+- ✅ **C++ IMU Node**: Fast real-time sensor processing and data correction
 - ✅ Direct I2C LSM9DS1 accelerometer and gyroscope access
 - ✅ Optimized 14-byte burst read for gyro + temperature + accel data
 - ✅ ROS2 standard sensor_msgs/Imu and sensor_msgs/Temperature messages
 - ✅ Configurable full-scale ranges (accel: 2/4/8/16g, gyro: 245/500/2000 dps)
+- ✅ **Python Calibration Service**: Interactive calibration with user guidance
+- ✅ **Automatic calibration loading and real-time correction**
 - ❌ **Magnetometer not responding** (hardware issue on this specific Sense HAT)
 
 ### IMU Topics
@@ -143,9 +146,36 @@ python3 image_display.py image.png  # Display any image file (resized to 8x8)
 - `/sense_hat/imu/data_raw` - Raw IMU data (accel + gyro, no magnetometer)
 - `/sense_hat/temperature/imu` - Temperature from IMU sensor
 
-### IMU Services
+### IMU Services (C++ - Non-blocking)
 
-- `/sense_hat/imu/calibrate` - Calibrate IMU (placeholder for future implementation)
+- `/sense_hat/imu/calibrate` - Redirects to Python calibration service
+- `/sense_hat/imu/calibrate_gyro` - Redirects to Python calibration service
+- `/sense_hat/imu/calibrate_accel` - Redirects to Python calibration service
+- `/sense_hat/imu/calibrate_mag` - Redirects to Python calibration service
+- `/sense_hat/imu/save_calibration` - Save current calibration data to file
+
+### Python Calibration Service (Interactive)
+
+```bash
+# Full interactive calibration
+python3 demo/calibrate_imu.py all
+
+# Individual calibrations
+python3 demo/calibrate_imu.py gyro    # Gyroscope bias (30s stationary)
+python3 demo/calibrate_imu.py accel   # Accelerometer 6-point method
+
+# Simple test calibration
+python3 demo/simple_calibrate.py gyro
+```
+
+### Calibration Features
+
+- **Architecture**: C++ handles real-time processing, Python provides user interaction
+- **Gyroscope**: Bias correction using stationary calibration
+- **Accelerometer**: 6-point tumble algorithm for offset and scale correction
+- **Persistence**: Automatic loading of saved calibration on C++ node startup
+- **Real-time correction**: All published data automatically corrected using calibration
+- **Non-blocking**: C++ services return immediately, Python handles interactive calibration
 
 **Note**: Magnetometer portion of LSM9DS1 not responding at expected I2C addresses (0x1C/0x1E). Accelerometer and gyroscope working correctly at 0x6A.
 

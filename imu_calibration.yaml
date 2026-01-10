@@ -1,0 +1,12 @@
+# IMU Calibration Data
+accel_offset_x: -0.08322794340094752
+accel_offset_y: -0.14009505175814407
+accel_offset_z: -0.13665733167103333
+accel_scale_x: 1.0275088594334476
+accel_scale_y: 1.0399677510512506
+accel_scale_z: 1.0257042024543495
+accel_calibrated: true
+gyro_bias_x: -0.2537820809201835
+gyro_bias_y: -0.0754465638621621
+gyro_bias_z: -0.025852465453519397
+gyro_calibrated: true
