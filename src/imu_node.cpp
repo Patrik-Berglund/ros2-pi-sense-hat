@@ -84,10 +84,10 @@ public:
     }
 
     // Create publishers
-    imu_pub_ = create_publisher<sensor_msgs::msg::Imu>("/sense_hat/imu/data_raw", 10);
-    temp_pub_ = create_publisher<sensor_msgs::msg::Temperature>("/sense_hat/temperature/imu", 10);
+    imu_pub_ = create_publisher<sensor_msgs::msg::Imu>("/imu/data_raw", 10);
+    temp_pub_ = create_publisher<sensor_msgs::msg::Temperature>("/imu/temperature", 10);
     if (enable_mag_) {
-      mag_pub_ = create_publisher<sensor_msgs::msg::MagneticField>("/sense_hat/imu/mag", 10);
+      mag_pub_ = create_publisher<sensor_msgs::msg::MagneticField>("/imu/mag", 10);
     }
 
     // Create services
