@@ -17,10 +17,13 @@ struct CalibrationData {
     float accel_scale_y = 1.0f;
     float accel_scale_z = 1.0f;
     
-    // Magnetometer hard-iron offset
+    // Magnetometer hard-iron offset and scale
     float mag_offset_x = 0.0f;
     float mag_offset_y = 0.0f;
     float mag_offset_z = 0.0f;
+    float mag_scale_x = 1.0f;
+    float mag_scale_y = 1.0f;
+    float mag_scale_z = 1.0f;
     
     // Calibration status
     bool gyro_calibrated = false;

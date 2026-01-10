@@ -24,7 +24,7 @@ class IMUSubscriber(Node):
 
     def mag_callback(self, msg):
         m = msg.magnetic_field
-        self.get_logger().info(f'Magnetometer: [{m.x:.3f}, {m.y:.3f}, {m.z:.3f}] gauss')
+        self.get_logger().info(f'Magnetometer: [{m.x:.6f}, {m.y:.6f}, {m.z:.6f}] T')
 
 def main():
     rclpy.init()

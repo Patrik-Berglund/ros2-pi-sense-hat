@@ -2,7 +2,7 @@
 
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import Imu
+from sensor_msgs.msg import Imu, MagneticField
 import sys
 import time
 import numpy as np
@@ -17,7 +17,12 @@ class IMUCalibrationService(Node):
         self.imu_sub = self.create_subscription(
             Imu, '/sense_hat/imu/data_raw', self.imu_callback, 10)
         
+        # Subscribe to magnetometer data
+        self.mag_sub = self.create_subscription(
+            MagneticField, '/sense_hat/imu/mag', self.mag_callback, 10)
+        
         self.imu_data = deque(maxlen=1000)
+        self.mag_data = deque(maxlen=1000)
         self.get_logger().info('IMU Calibration Service started')
         self.get_logger().info('Collecting IMU data...')
 
@@ -29,6 +34,14 @@ class IMUCalibrationService(Node):
             'gyro': [msg.angular_velocity.x, msg.angular_velocity.y, msg.angular_velocity.z]
         }
         self.imu_data.append(data)
+
+    def mag_callback(self, msg):
+        """Store incoming magnetometer data"""
+        data = {
+            'timestamp': time.time(),
+            'mag': [msg.magnetic_field.x, msg.magnetic_field.y, msg.magnetic_field.z]
+        }
+        self.mag_data.append(data)
 
     def wait_for_data(self, min_samples=10):
         """Wait for sufficient IMU data"""
@@ -152,6 +165,81 @@ class IMUCalibrationService(Node):
             'accel_calibrated': True
         }
 
+    def calibrate_magnetometer(self):
+        """Calibrate magnetometer using ellipsoid fitting"""
+        print("\n🧭 Starting magnetometer calibration...")
+        print("🔄 Rotate the IMU in ALL directions - make a 3D figure-8 pattern!")
+        print("   Move it through a complete sphere of orientations")
+        print("   Duration: 45 seconds")
+        
+        input("Press Enter when ready to start rotating...")
+        
+        # Collect magnetometer samples while rotating
+        start_time = time.time()
+        mag_samples = []
+        
+        print("🔄 ROTATE NOW! Move in all directions...")
+        
+        while time.time() - start_time < 45:  # 45 seconds
+            if len(self.mag_data) > 0:
+                mag_samples.append(self.mag_data[-1]['mag'])
+            
+            # Progress indicator
+            elapsed = time.time() - start_time
+            progress = int((elapsed / 45) * 20)
+            bar = "█" * progress + "░" * (20 - progress)
+            print(f"\r🔄 [{bar}] {elapsed:.1f}s/45s - Keep rotating!", end="", flush=True)
+            
+            rclpy.spin_once(self, timeout_sec=0.1)
+            time.sleep(0.1)
+        
+        print(f"\n✅ Collected {len(mag_samples)} magnetometer samples")
+        
+        if len(mag_samples) < 100:
+            print("❌ Insufficient magnetometer samples")
+            return None
+        
+        # Convert to numpy array
+        mag_data = np.array(mag_samples)
+        
+        # Simple hard-iron calibration (center of data cloud)
+        # Find min/max for each axis
+        x_min, x_max = np.min(mag_data[:, 0]), np.max(mag_data[:, 0])
+        y_min, y_max = np.min(mag_data[:, 1]), np.max(mag_data[:, 1])
+        z_min, z_max = np.min(mag_data[:, 2]), np.max(mag_data[:, 2])
+        
+        # Hard-iron offset (center of ellipsoid)
+        offset_x = (x_min + x_max) / 2.0
+        offset_y = (y_min + y_max) / 2.0
+        offset_z = (z_min + z_max) / 2.0
+        
+        # Simple scale factors (soft-iron approximation)
+        range_x = x_max - x_min
+        range_y = y_max - y_min
+        range_z = z_max - z_min
+        
+        # Use average range as reference
+        avg_range = (range_x + range_y + range_z) / 3.0
+        
+        scale_x = avg_range / range_x if range_x > 0 else 1.0
+        scale_y = avg_range / range_y if range_y > 0 else 1.0
+        scale_z = avg_range / range_z if range_z > 0 else 1.0
+        
+        print(f"\n✅ Magnetometer calibration complete!")
+        print(f"   Hard-iron offset: X={offset_x:.6f} Y={offset_y:.6f} Z={offset_z:.6f} T")
+        print(f"   Scale factors: X={scale_x:.6f} Y={scale_y:.6f} Z={scale_z:.6f}")
+        print(f"   Data ranges: X={range_x:.6f} Y={range_y:.6f} Z={range_z:.6f} T")
+        
+        return {
+            'mag_offset_x': float(offset_x),
+            'mag_offset_y': float(offset_y),
+            'mag_offset_z': float(offset_z),
+            'mag_scale_x': float(scale_x),
+            'mag_scale_y': float(scale_y),
+            'mag_scale_z': float(scale_z),
+            'mag_calibrated': True
+        }
+
     def save_calibration(self, cal_data, filename='imu_calibration.yaml'):
         """Save calibration data to YAML file, merging with existing data"""
         # Load existing calibration data first
@@ -202,11 +290,12 @@ def main():
     
     if len(sys.argv) < 2:
         print("\nIMU Calibration Service")
-        print("Usage: python3 calibrate_imu.py [gyro|accel|all]")
+        print("Usage: python3 calibrate_imu.py [gyro|accel|mag|all]")
         print("\nAvailable calibrations:")
         print("  gyro  - Gyroscope bias calibration")
-        print("  accel - Accelerometer 6-point calibration") 
-        print("  all   - Full calibration (gyro + accel)")
+        print("  accel - Accelerometer 6-point calibration")
+        print("  mag   - Magnetometer hard/soft-iron calibration") 
+        print("  all   - Full calibration (gyro + accel + mag)")
         return
     
     mode = sys.argv[1].lower()
@@ -221,6 +310,11 @@ def main():
         accel_cal = service.calibrate_accelerometer()
         if accel_cal:
             cal_data.update(accel_cal)
+    
+    if mode in ['mag', 'all']:
+        mag_cal = service.calibrate_magnetometer()
+        if mag_cal:
+            cal_data.update(mag_cal)
     
     if cal_data:
         service.save_calibration(cal_data)
