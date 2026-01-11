@@ -5,10 +5,11 @@
 **Current Environment**: WSL (Windows Subsystem for Linux) - for code editing and planning
 
 **Target System**: Raspberry Pi 4 (4GB RAM, 16GB SD card)
-- OS: Ubuntu 24.04
+- OS: Ubuntu 24.04 Server (no GUI/X11)
 - ROS2: Kilted
 - When running on target: Can build, run, and test code directly
 - Hardware access: I2C, GPIO, sensors available on target only
+- No graphical display - terminal/SSH only
 
 **Workflow**:
 - Edit code in WSL

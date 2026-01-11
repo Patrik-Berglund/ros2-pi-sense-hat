@@ -113,7 +113,22 @@ class IMUCalibrationService(Node):
         # Save raw data
         self.save_raw_data('accel', samples)
         
-        print("🔄 Fitting ellipsoid...")
+        # Analyze coverage
+        print("\n📊 Data coverage analysis:")
+        octants = np.zeros(8)
+        for point in data:
+            idx = (point[0] > 0) * 4 + (point[1] > 0) * 2 + (point[2] > 0)
+            octants[idx] += 1
+        
+        for i, count in enumerate(octants):
+            pct = count/len(data)*100
+            bar = "█" * int(pct/5) + "░" * (20 - int(pct/5))
+            print(f"   Octant {i}: {bar} {pct:5.1f}% ({int(count)} samples)")
+        
+        if np.any(octants < len(data) * 0.05):
+            print("   ⚠️  Some octants have <5% coverage - consider recalibrating")
+        
+        print("\n🔄 Fitting ellipsoid...")
         offset, matrix, radii, residual = fit_ellipsoid(data)
         
         rms_error, max_error, mean_radius = validate_calibration(data, offset, matrix, g)
@@ -170,7 +185,22 @@ class IMUCalibrationService(Node):
         # Save raw data
         self.save_raw_data('mag', samples)
         
-        print("🔄 Fitting ellipsoid...")
+        # Analyze coverage
+        print("\n📊 Data coverage analysis:")
+        octants = np.zeros(8)
+        for point in data:
+            idx = (point[0] > 0) * 4 + (point[1] > 0) * 2 + (point[2] > 0)
+            octants[idx] += 1
+        
+        for i, count in enumerate(octants):
+            pct = count/len(data)*100
+            bar = "█" * int(pct/5) + "░" * (20 - int(pct/5))
+            print(f"   Octant {i}: {bar} {pct:5.1f}% ({int(count)} samples)")
+        
+        if np.any(octants < len(data) * 0.05):
+            print("   ⚠️  Some octants have <5% coverage - consider recalibrating")
+        
+        print("\n🔄 Fitting ellipsoid...")
         offset, matrix, radii, residual = fit_ellipsoid(data)
         
         expected_radius = np.mean(radii)
