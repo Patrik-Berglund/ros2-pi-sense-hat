@@ -195,10 +195,39 @@ class IMUCalibrationService(Node):
         }
 
     def save_calibration(self, cal_data, filename='imu_calibration.yaml'):
+        # Load existing calibration
+        existing = {}
+        try:
+            with open(filename, 'r') as f:
+                for line in f:
+                    if ':' in line and not line.strip().startswith('#'):
+                        key, value = line.strip().split(':', 1)
+                        key = key.strip()
+                        value = value.strip()
+                        
+                        # Parse value
+                        if value in ['true', 'false']:
+                            existing[key] = (value == 'true')
+                        elif value.startswith('['):
+                            # Parse list
+                            import ast
+                            existing[key] = ast.literal_eval(value)
+                        else:
+                            try:
+                                existing[key] = float(value)
+                            except ValueError:
+                                existing[key] = value
+        except FileNotFoundError:
+            pass
+        
+        # Merge new data
+        existing.update(cal_data)
+        
+        # Save merged data
         try:
             with open(filename, 'w') as f:
                 f.write("# IMU Calibration Data\n")
-                for key, value in cal_data.items():
+                for key, value in existing.items():
                     if isinstance(value, bool):
                         f.write(f"{key}: {'true' if value else 'false'}\n")
                     elif isinstance(value, list):

@@ -32,3 +32,4 @@ Makefile
 Thumbs.db
 .claude
 .vs
+scripts/__pycache__/
