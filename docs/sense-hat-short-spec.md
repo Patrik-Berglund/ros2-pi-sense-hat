@@ -19,10 +19,12 @@ Accelerometer/gyroscope/magnetometer
 • ±2000dps gyroscope measurement range
 • 16-bit resolution for each measurement channel
 
-Colour sensor: AMS TCS3400 RGB colour and brightness sensor
-• I2C interface
-• RGB color detection
+Colour sensor: AMS TCS34725 RGB colour and brightness sensor
+• I2C interface (address 0x29)
+• RGBC color detection (Red, Green, Blue, Clear)
 • Ambient light sensing
+• Programmable gain and integration time
+• Note: Hardware uses TCS34725, not TCS3400 as originally specified
 
 LED matrix: 8×8 RGB LED display
 • Driver: STMicroelectronics LED2472G

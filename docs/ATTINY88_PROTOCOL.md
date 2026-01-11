@@ -17,7 +17,7 @@ Pi I2C Bus 1 (/dev/i2c-1)
 ├── LSM9DS1 Magnetometer (0x1C/0x1E) - Direct to Pi  
 ├── HTS221 (0x5F) - Direct to Pi
 ├── LPS25H (0x5C) - Direct to Pi
-└── TCS3400 (0x39) - Direct to Pi
+└── TCS34725 (0x29) - Direct to Pi
 ```
 
 ## Sensor I/O Limitations
@@ -34,7 +34,7 @@ Pi I2C Bus 1 (/dev/i2c-1)
 - LSM9DS1: No INT1_A/G, INT2_A/G, INT_M interrupts
 - HTS221: No DRDY data-ready pin
 - LPS25H: No INT_DRDY interrupt pin
-- TCS3400: No INT threshold interrupt pin
+- TCS34725: No INT threshold interrupt pin
 
 ## I2C Configuration
 

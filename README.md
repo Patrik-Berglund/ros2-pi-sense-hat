@@ -56,7 +56,7 @@ i2cdetect -y 1
 #   0x5C - LPS25H pressure sensor (direct to Pi)
 #   0x5F - HTS221 humidity/temperature sensor (direct to Pi)
 #   0x6A - LSM9DS1 accelerometer/gyroscope (direct to Pi)
-#   0x29 - VL53L0X distance sensor (direct to Pi)
+#   0x29 - TCS34725 color sensor (direct to Pi)
 
 # Clone this repository into your workspace
 cd /path/to/your/workspace
@@ -260,6 +260,10 @@ LSM9DS1 I2C → Bias/Scale Correction → Orientation → 6DOF Pose → /odometr
 - TF tree integration for coordinate transforms
 - Persistent calibration with automatic loading
 - Real-time visual feedback for system validation
+
+## Hardware Note
+
+**Color Sensor Variant**: This Sense HAT v2 board contains a **TCS34725** color sensor at I2C address **0x29**, not the TCS3400 specified in the original documentation. The TCS34725 is functionally similar (RGBC channels, ambient light sensing) but uses different I2C registers and requires a command bit (0x80) for all register accesses. The driver has been updated to support the TCS34725 hardware.
 
 ## Architecture Highlights
 
