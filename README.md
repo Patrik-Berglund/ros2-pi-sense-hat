@@ -163,13 +163,13 @@ python3 demo/image_display.py image.png # Display image files
   - Temperature offset calibration parameter
 
 ### Color/Light Sensor (COMPLETED)
-- ✅ **TCS3400 RGB Color Sensor**
+- ✅ **TCS34725 RGB Color Sensor**
   - RGBC (Red, Green, Blue, Clear) channels
-  - IR channel for light source detection
   - Ambient light sensing (illuminance)
-  - Configurable integration time (2.78-712 ms)
-  - Configurable gain (1x, 4x, 16x, 64x)
+  - Configurable integration time (2.4-614 ms)
+  - Configurable gain (1x, 4x, 16x, 60x)
   - Normalized RGB output for color detection
+  - I2C address: 0x29 (note: hardware differs from spec)
 
 ### Sensor Fusion Architecture
 
