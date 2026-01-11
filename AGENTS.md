@@ -185,6 +185,10 @@ ros2 topic list
 ros2 topic echo /topic_name
 ros2 topic info /topic_name
 
+# IMPORTANT: Use timeout for commands that don't exit (echo, spin, etc.)
+timeout 10 ros2 topic echo /topic_name  # Exit after 10 seconds
+timeout 5 ros2 topic echo /topic_name --once  # Get one message with timeout
+
 # Services
 ros2 service list
 ros2 service call /service_name <srv_type> "request"
