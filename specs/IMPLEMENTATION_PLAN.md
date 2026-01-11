@@ -110,21 +110,21 @@ Component-based architecture with individual nodes for each Sense HAT function, 
   - Open/close I2C bus
   - Read/write registers
   - Multi-byte read/write operations
-- [ ] **LSM9DS1 Driver** (IMU) - I2C 0x6A/0x6B (accel/gyro), 0x1C/0x1E (mag) - **Direct to Pi**
+- [x] **LSM9DS1 Driver** (IMU) - I2C 0x6A/0x6B (accel/gyro), 0x1C/0x1E (mag) - **Direct to Pi**
   - Reference: `docs/datasheets/ST-LSM9DS1.md`
   - Register configuration
   - Raw data reading
   - Calibration and conversion to physical units
   - **Note:** No interrupts available (IMU interrupt pins not connected to Pi GPIO)
-- [ ] **HTS221 Driver** (Humidity/Temperature) - I2C 0x5F - **Direct to Pi**
+- [x] **HTS221 Driver** (Humidity/Temperature) - I2C 0x5F - **Direct to Pi**
   - Reference: `docs/datasheets/ST-HTS221.md`
   - Read calibration coefficients
   - Raw ADC to physical units conversion
-- [ ] **LPS25H Driver** (Pressure) - I2C 0x5C - **Direct to Pi**
+- [x] **LPS25H Driver** (Pressure) - I2C 0x5C - **Direct to Pi**
   - Reference: `docs/datasheets/ST-LPS25H.md`
   - Register setup
   - Pressure and temperature reading
-- [ ] **TCS3400 Driver** (Color/Light Sensor) - I2C 0x39 - **Direct to Pi**
+- [x] **TCS3400 Driver** (Color/Light Sensor) - I2C 0x39 - **Direct to Pi**
   - Reference: `docs/datasheets/AMS-TCS3400.md`
   - RGB color channel reading
   - Clear/ambient light reading
@@ -139,10 +139,10 @@ Component-based architecture with individual nodes for each Sense HAT function, 
   - Frame-synchronized bulk updates via libgpiod
 
 ### Phase 3: Component Nodes
-- [ ] Implement IMU node
-- [ ] Implement Environmental sensor node
-- [ ] Implement Color sensor node
-- [ ] Implement Joystick node (using ATTINY88 driver)
+- [x] Implement IMU node
+- [x] Implement Environmental sensor node
+- [x] Implement Color sensor node
+- [x] Implement Joystick node (using ATTINY88 driver)
 - [x] **Implement LED matrix node (using ATTINY88 driver)**
 - [x] **Test LED matrix node independently**
 

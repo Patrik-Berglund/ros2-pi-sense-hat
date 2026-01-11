@@ -15,6 +15,14 @@ echo "Starting IMU node..."
 ros2 run ros2_pi_sense_hat imu_node &
 sleep 2  # Wait for IMU to start publishing
 
+echo "Starting environmental sensors node..."
+ros2 run ros2_pi_sense_hat environmental_node &
+sleep 2  # Wait for environmental sensors to initialize
+
+echo "Starting color sensor node..."
+ros2 run ros2_pi_sense_hat color_node &
+sleep 2  # Wait for color sensor to initialize
+
 echo "Starting IMU orientation filter (Madgwick)..."
 ros2 run imu_filter_madgwick imu_filter_madgwick_node --ros-args --params-file config/madgwick.yaml &
 sleep 2  # Wait for filter to start

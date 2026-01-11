@@ -38,6 +38,19 @@ add_executable(imu_node
   src/i2c_device.cpp
 )
 
+add_executable(environmental_node
+  src/environmental_node.cpp
+  src/hts221_driver.cpp
+  src/lps25h_driver.cpp
+  src/i2c_device.cpp
+)
+
+add_executable(color_node
+  src/color_node.cpp
+  src/tcs3400_driver.cpp
+  src/i2c_device.cpp
+)
+
 target_link_libraries(led_matrix_node PUBLIC
   rclcpp::rclcpp
   ${sensor_msgs_TARGETS}
@@ -55,6 +68,20 @@ target_link_libraries(joystick_node PUBLIC
 )
 
 target_link_libraries(imu_node PUBLIC
+  rclcpp::rclcpp
+  ${sensor_msgs_TARGETS}
+  ${std_msgs_TARGETS}
+  ${std_srvs_TARGETS}
+)
+
+target_link_libraries(environmental_node PUBLIC
+  rclcpp::rclcpp
+  ${sensor_msgs_TARGETS}
+  ${std_msgs_TARGETS}
+  ${std_srvs_TARGETS}
+)
+
+target_link_libraries(color_node PUBLIC
   rclcpp::rclcpp
   ${sensor_msgs_TARGETS}
   ${std_msgs_TARGETS}
@@ -76,11 +103,25 @@ target_link_libraries(imu_node PUBLIC
   "${cpp_typesupport_target}"
 )
 
+target_link_libraries(environmental_node PUBLIC
+  "${cpp_typesupport_target}"
+)
+
+target_link_libraries(color_node PUBLIC
+  "${cpp_typesupport_target}"
+)
+
 install(TARGETS
   led_matrix_node
   joystick_node
   imu_node
+  environmental_node
+  color_node
   DESTINATION lib/${PROJECT_NAME}
+)
+
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
 )
 
 ament_package()

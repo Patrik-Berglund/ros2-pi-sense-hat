@@ -70,12 +70,21 @@ source install/setup.bash
 ## Usage
 
 ```bash
-# Launch all nodes (LED matrix, joystick, IMU, and sensor fusion)
-./scripts/run_node.sh
+# Launch all sensor nodes
+ros2 launch ros2_pi_sense_hat sense_hat.launch.py
+
+# Or run individual nodes
+ros2 run ros2_pi_sense_hat led_matrix_node
+ros2 run ros2_pi_sense_hat joystick_node
+ros2 run ros2_pi_sense_hat imu_node
+ros2 run ros2_pi_sense_hat environmental_node
+ros2 run ros2_pi_sense_hat color_node
 
 # Test individual components
 python3 demo/test_imu.py              # Test IMU data
 python3 demo/test_sensor_fusion.py    # Test complete sensor fusion
+python3 demo/test_environmental.py    # Test temperature/humidity/pressure
+python3 demo/test_color.py            # Test color/light sensor
 python3 demo/simple_level.py          # Visual level indicator on LED matrix
 python3 demo/quaternion_level.py      # Quaternion-based level display
 
@@ -138,6 +147,30 @@ python3 demo/image_display.py image.png # Display image files
 - ✅ 5-direction input (up, down, left, right, center)
 - ✅ ROS2 Joy message publishing
 
+### Environmental Sensors (COMPLETED)
+- ✅ **HTS221 Humidity/Temperature Sensor**
+  - Factory-calibrated humidity (0-100% RH, ±3.5% accuracy)
+  - Temperature measurement (-40 to +120°C, ±0.5°C accuracy)
+  - Configurable output data rate (1-12.5 Hz)
+  - Configurable averaging for noise reduction
+  - Temperature offset calibration parameter
+
+- ✅ **LPS25H Pressure Sensor**
+  - High-resolution barometric pressure (260-1260 hPa)
+  - 0.01 hPa resolution (~10 cm altitude)
+  - Temperature measurement for compensation
+  - Configurable output data rate (1-25 Hz)
+  - Temperature offset calibration parameter
+
+### Color/Light Sensor (COMPLETED)
+- ✅ **TCS3400 RGB Color Sensor**
+  - RGBC (Red, Green, Blue, Clear) channels
+  - IR channel for light source detection
+  - Ambient light sensing (illuminance)
+  - Configurable integration time (2.78-712 ms)
+  - Configurable gain (1x, 4x, 16x, 64x)
+  - Normalized RGB output for color detection
+
 ### Sensor Fusion Architecture
 
 ```
@@ -167,6 +200,16 @@ LSM9DS1 I2C → Bias/Scale Correction → Orientation → 6DOF Pose → /odometr
 
 **Joystick:**
 - `/sense_hat/joystick` - 5-direction joystick input
+
+**Environmental Sensors:**
+- `/sense_hat/temperature/humidity_sensor` - Temperature from HTS221
+- `/sense_hat/temperature/pressure_sensor` - Temperature from LPS25H
+- `/sense_hat/humidity` - Relative humidity (0-1 scale)
+- `/sense_hat/pressure` - Barometric pressure (Pa)
+
+**Color/Light Sensor:**
+- `/sense_hat/color/illuminance` - Ambient light level
+- `/sense_hat/color/rgb` - Normalized RGB color values
 
 ### Services Available
 
