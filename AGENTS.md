@@ -97,6 +97,16 @@ During investigation phase:
 
 **CRITICAL**: ALL production code MUST be C++. Python is ONLY for demos and tests.
 
+## Project Structure
+
+**Directory Organization:**
+- `scripts/` - Production tools (calibration, node startup scripts)
+- `demo/` - Example and test scripts
+- `specs/` - Specifications and implementation plans
+- `src/` - C++ source code
+- `include/` - C++ headers
+- `config/` - Configuration files
+
 ## ROS2 Development Tools
 
 **CLI Operations**: Use the `cli-runner` subagent for all command-line operations. This specialized subagent handles ROS2 commands, system operations, python, and development tools.

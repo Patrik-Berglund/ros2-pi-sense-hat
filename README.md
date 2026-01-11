@@ -71,7 +71,7 @@ source install/setup.bash
 
 ```bash
 # Launch all nodes (LED matrix, joystick, IMU, and sensor fusion)
-./demo/run_node.sh
+./scripts/run_node.sh
 
 # Test individual components
 python3 demo/test_imu.py              # Test IMU data
@@ -80,10 +80,10 @@ python3 demo/simple_level.py          # Visual level indicator on LED matrix
 python3 demo/quaternion_level.py      # Quaternion-based level display
 
 # IMU Calibration (run separately)
-python3 demo/calibrate_imu.py gyro    # Gyroscope bias calibration
-python3 demo/calibrate_imu.py accel   # Accelerometer 6-point calibration
-python3 demo/calibrate_imu.py mag     # Magnetometer hard/soft-iron calibration
-python3 demo/calibrate_imu.py all     # Full calibration sequence
+python3 scripts/calibrate_imu.py gyro    # Gyroscope bias calibration
+python3 scripts/calibrate_imu.py accel   # Accelerometer 6-point calibration
+python3 scripts/calibrate_imu.py mag     # Magnetometer hard/soft-iron calibration
+python3 scripts/calibrate_imu.py all     # Full calibration sequence
 
 # LED Matrix demos
 python3 demo/test_pixels_fast.py      # Fast pixel testing

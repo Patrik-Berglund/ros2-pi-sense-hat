@@ -39,13 +39,13 @@ This document outlined the implementation plan for a comprehensive IMU calibrati
 
 ## Technical Implementation
 
-### Python Calibration Service (`demo/calibrate_imu.py`)
+### Python Calibration Service (`scripts/calibrate_imu.py`)
 ```python
 # Interactive calibration with user guidance
-python3 demo/calibrate_imu.py gyro    # Gyroscope bias
-python3 demo/calibrate_imu.py accel   # Accelerometer 6-point
-python3 demo/calibrate_imu.py mag     # Magnetometer hard/soft-iron
-python3 demo/calibrate_imu.py all     # Complete calibration sequence
+python3 scripts/calibrate_imu.py gyro    # Gyroscope bias
+python3 scripts/calibrate_imu.py accel   # Accelerometer 6-point
+python3 scripts/calibrate_imu.py mag     # Magnetometer hard/soft-iron
+python3 scripts/calibrate_imu.py all     # Complete calibration sequence
 ```
 
 **Features:**

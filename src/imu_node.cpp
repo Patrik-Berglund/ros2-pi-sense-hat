@@ -273,25 +273,25 @@ private:
   void calibrateCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request>,
                         std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
     response->success = false;
-    response->message = "Use Python calibration service: python3 demo/calibrate_imu.py";
+    response->message = "Use Python calibration service: python3 scripts/calibrate_imu.py";
   }
 
   void calibrateGyroCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request>,
                             std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
     response->success = false;
-    response->message = "Use Python calibration service: python3 demo/calibrate_imu.py gyro";
+    response->message = "Use Python calibration service: python3 scripts/calibrate_imu.py gyro";
   }
 
   void calibrateAccelCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request>,
                              std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
     response->success = false;
-    response->message = "Use Python calibration service: python3 demo/calibrate_imu.py accel";
+    response->message = "Use Python calibration service: python3 scripts/calibrate_imu.py accel";
   }
 
   void calibrateMagCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request>,
                            std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
     response->success = false;
-    response->message = "Use Python calibration service: python3 demo/calibrate_imu.py mag";
+    response->message = "Use Python calibration service: python3 scripts/calibrate_imu.py mag";
   }
 
   void saveCalibrationCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request>,

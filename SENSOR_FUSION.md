@@ -23,7 +23,7 @@ Gyro+Accel+Mag → Bias/Scale → Orientation → Full 6DOF Pose
   - `/sense_hat/imu/mag` - Calibrated magnetometer data
 
 ### 2. IMU Calibration System
-- **Python Script**: `demo/calibrate_imu.py` - Interactive calibration algorithms
+- **Python Script**: `scripts/calibrate_imu.py` - Interactive calibration algorithms
 - **C++ Library**: `src/imu_calibration.cpp` - Fast coefficient loading and correction
 - **Calibrations**:
   - Gyroscope bias (30s stationary)
@@ -65,7 +65,7 @@ ekf_filter_node:
 
 **Critical Configuration Note**: Linear acceleration is disabled (`imu0_config` last 3 values: `false`) because accelerometer-only position estimation causes severe drift. Without additional position sensors (wheel encoders, GPS, visual odometry), integrating accelerometer noise leads to unbounded position errors. The EKF is configured for orientation-only tracking, providing stable attitude estimation suitable for control applications.
 
-## Startup Sequence (`demo/run_node.sh`)
+## Startup Sequence (`scripts/run_node.sh`)
 
 1. **LED Matrix Node** - Display control
 2. **Joystick Node** - Input handling  
@@ -106,10 +106,10 @@ EKF (pose estimation)
 
 ```bash
 # Start all nodes
-./demo/run_node.sh
+./scripts/run_node.sh
 
 # Calibrate IMU (run separately)
-python3 demo/calibrate_imu.py all
+python3 scripts/calibrate_imu.py all
 
 # Monitor fused output
 ros2 topic echo /odometry/filtered

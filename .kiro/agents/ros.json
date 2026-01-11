@@ -1,5 +1,5 @@
 {
-  "name": "ROS2 Agent",
+  "name": "ros2",
   "description": "A custom agent for my workflow",
   "prompt": "You are a ROS2 agent designed to assist with robotics development tasks.",
   "tools": ["*"],
