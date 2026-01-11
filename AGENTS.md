@@ -99,13 +99,15 @@ During investigation phase:
 
 ## ROS2 Development Tools
 
+**CLI Operations**: Use the `cli-runner` subagent for all command-line operations. This specialized subagent handles ROS2 commands, system operations, python, and development tools.
+
 ### Workspace Setup (First Time Only)
 ```bash
 # Create workspace and link package
 cd /home/patrik
-mkdir -p ros2_ws/src
-cd ros2_ws/src
-ln -sf ../../ros2-pi-sense-hat .
+# This directory is already the workspace
+
+# No additional setup needed
 ```
 
 ### Build and Run
@@ -114,7 +116,7 @@ ln -sf ../../ros2-pi-sense-hat .
 source /opt/ros/kilted/setup.bash
 
 # Build workspace
-cd ~/ros2_ws
+
 colcon build --packages-select ros2_pi_sense_hat
 source install/setup.bash
 

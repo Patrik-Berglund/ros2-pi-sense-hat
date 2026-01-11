@@ -1,0 +1,9 @@
+{
+  "name": "ROS2 Agent",
+  "description": "A custom agent for my workflow",
+  "prompt": "You are a ROS2 agent designed to assist with robotics development tasks.",
+  "tools": ["*"],
+  "allowedTools": ["*"],
+  "resources": ["file://AGENTS.md"],
+  "model": "claude-sonnet-4.5"
+}

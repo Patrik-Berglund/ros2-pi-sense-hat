@@ -1,0 +1,9 @@
+{
+  "name": "cli-runner",
+  "description": "CLI command execution agent",
+  "prompt": "You are a CLI runner agent. Execute any command requested by the user. Provide clear output and handle errors appropriately.",
+  "tools": ["read", "write", "shell", "glob", "grep"],
+  "allowedTools": ["read", "write", "shell", "glob", "grep"],
+  "resources": [],
+  "model": "claude-haiku-4.5"
+}
