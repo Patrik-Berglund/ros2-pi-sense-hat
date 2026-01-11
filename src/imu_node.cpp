@@ -106,10 +106,6 @@ public:
     calibrate_mag_srv_ = create_service<std_srvs::srv::Trigger>(
       "/sense_hat/imu/calibrate_mag",
       std::bind(&IMUNode::calibrateMagCallback, this, std::placeholders::_1, std::placeholders::_2));
-    
-    save_calibration_srv_ = create_service<std_srvs::srv::Trigger>(
-      "/sense_hat/imu/save_calibration",
-      std::bind(&IMUNode::saveCalibrationCallback, this, std::placeholders::_1, std::placeholders::_2));
 
     // Create timer
     timer_ = create_wall_timer(
@@ -144,8 +140,7 @@ public:
       if (cal_data.accel_calibrated) {
         RCLCPP_INFO(get_logger(), "  Accel offset: [%.6f, %.6f, %.6f] m/s²", 
                     cal_data.accel_offset_x, cal_data.accel_offset_y, cal_data.accel_offset_z);
-        RCLCPP_INFO(get_logger(), "  Accel scale: [%.6f, %.6f, %.6f]", 
-                    cal_data.accel_scale_x, cal_data.accel_scale_y, cal_data.accel_scale_z);
+        RCLCPP_INFO(get_logger(), "  Accel matrix calibrated");
       } else {
         RCLCPP_INFO(get_logger(), "  Accel: NOT calibrated");
       }
@@ -153,6 +148,7 @@ public:
       if (cal_data.mag_calibrated) {
         RCLCPP_INFO(get_logger(), "  Mag offset: [%.6f, %.6f, %.6f] Tesla", 
                     cal_data.mag_offset_x, cal_data.mag_offset_y, cal_data.mag_offset_z);
+        RCLCPP_INFO(get_logger(), "  Mag matrix calibrated");
       } else {
         RCLCPP_INFO(get_logger(), "  Mag: NOT calibrated");
       }
@@ -294,14 +290,6 @@ private:
     response->message = "Use Python calibration service: python3 scripts/calibrate_imu.py mag";
   }
 
-  void saveCalibrationCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request>,
-                              std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
-    std::string filename = "imu_calibration.yaml";
-    bool success = calibration_.saveCalibration(filename);
-    response->success = success;
-    response->message = success ? "Calibration data saved to " + filename : "Failed to save calibration data";
-  }
-
   LSM9DS1Driver driver_;
   IMUCalibration calibration_;
   std::string frame_id_;
@@ -314,7 +302,6 @@ private:
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr calibrate_gyro_srv_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr calibrate_accel_srv_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr calibrate_mag_srv_;
-  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr save_calibration_srv_;
   rclcpp::TimerBase::SharedPtr timer_;
 };
 

@@ -52,6 +52,16 @@ We follow a structured process:
 - Identify risks, trade-offs, and open questions
 - Keep it concise - details emerge during implementation
 - Save plans in `specs/` folder alongside the spec
+- **Use web search during planning** when uncertain about:
+  - API specifications or conventions
+  - Hardware capabilities or limitations
+  - Best practices for unfamiliar technologies
+  - Current versions or compatibility
+  - Technical specifications that may have changed
+- Focus on approach, architecture, and key decisions
+- Identify risks, trade-offs, and open questions
+- Keep it concise - details emerge during implementation
+- Save plans in `specs/` folder alongside the spec
 
 **Example Plan Structure**:
 ```markdown
@@ -85,6 +95,13 @@ During investigation phase:
 4. **Read documentation**: Check project docs, datasheets, and specs
 5. **Search when needed**: Use web search for ROS2 API details, hardware specs, or unfamiliar concepts
 
+**When to use web search:**
+- ROS2 API details, message types, or conventions
+- Hardware specifications, datasheets, register addresses
+- Unfamiliar libraries or frameworks
+- Current best practices or recent changes
+- Verifying technical specifications
+
 **Never assume:**
 - Function signatures or method names
 - ROS2 message types or service definitions
@@ -109,7 +126,18 @@ During investigation phase:
 
 ## ROS2 Development Tools
 
-**CLI Operations**: Use the `cli-runner` subagent for all command-line operations. This specialized subagent handles ROS2 commands, system operations, python, and development tools.
+**CRITICAL: Use the `cli-runner` subagent for ALL command-line operations.**
+
+This includes:
+- Building packages (`colcon build`)
+- Running nodes (`ros2 run`)
+- Running Python scripts
+- Any bash commands
+- File operations that involve execution
+
+**Why:** Keeps main context clean and focused on code/planning.
+
+**How:** Use `use_subagent` tool with `agent_name: "cli-runner"` for any CLI operation.
 
 ### Workspace Setup (First Time Only)
 ```bash
