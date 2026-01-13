@@ -5,10 +5,11 @@
 **Current Environment**: WSL (Windows Subsystem for Linux) - for code editing and planning
 
 **Target System**: Raspberry Pi 4 (4GB RAM, 16GB SD card)
-- OS: Ubuntu 24.04
+- OS: Ubuntu 24.04 Server (no GUI/X11)
 - ROS2: Kilted
 - When running on target: Can build, run, and test code directly
 - Hardware access: I2C, GPIO, sensors available on target only
+- No graphical display - terminal/SSH only
 
 **Workflow**:
 - Edit code in WSL
@@ -52,6 +53,16 @@ We follow a structured process:
 - Identify risks, trade-offs, and open questions
 - Keep it concise - details emerge during implementation
 - Save plans in `specs/` folder alongside the spec
+- **Use web search during planning** when uncertain about:
+  - API specifications or conventions
+  - Hardware capabilities or limitations
+  - Best practices for unfamiliar technologies
+  - Current versions or compatibility
+  - Technical specifications that may have changed
+- Focus on approach, architecture, and key decisions
+- Identify risks, trade-offs, and open questions
+- Keep it concise - details emerge during implementation
+- Save plans in `specs/` folder alongside the spec
 
 **Example Plan Structure**:
 ```markdown
@@ -85,6 +96,13 @@ During investigation phase:
 4. **Read documentation**: Check project docs, datasheets, and specs
 5. **Search when needed**: Use web search for ROS2 API details, hardware specs, or unfamiliar concepts
 
+**When to use web search:**
+- ROS2 API details, message types, or conventions
+- Hardware specifications, datasheets, register addresses
+- Unfamiliar libraries or frameworks
+- Current best practices or recent changes
+- Verifying technical specifications
+
 **Never assume:**
 - Function signatures or method names
 - ROS2 message types or service definitions
@@ -97,26 +115,50 @@ During investigation phase:
 
 **CRITICAL**: ALL production code MUST be C++. Python is ONLY for demos and tests.
 
+## Project Structure
+
+**Directory Organization:**
+- `scripts/` - Production tools (calibration, node startup scripts)
+- `demo/` - Example and test scripts
+- `specs/` - Specifications and implementation plans
+- `src/` - C++ source code
+- `include/` - C++ headers
+- `config/` - Configuration files
+
 ## ROS2 Development Tools
+
+### Workspace Setup (First Time Only)
+```bash
+# Create workspace and link package
+cd /home/patrik
+# This directory is already the workspace
+
+# No additional setup needed
+```
 
 ### Build and Run
 ```bash
+# Source ROS2 environment
+source /opt/ros/kilted/setup.bash
+
 # Build workspace
-cd ~/ros2_ws
-colcon build --packages-select <package_name>
+
+colcon build --packages-select ros2_pi_sense_hat
 source install/setup.bash
 
 # Build with verbose output
-colcon build --packages-select <package_name> --event-handlers console_direct+
+colcon build --packages-select ros2_pi_sense_hat --event-handlers console_direct+
 
 # Clean build
-colcon build --packages-select <package_name> --cmake-clean-cache
+colcon build --packages-select ros2_pi_sense_hat --cmake-clean-cache
 
-# Run nodes
-ros2 run <package_name> <node_name>
+# Run nodes (available: led_matrix_node, joystick_node, imu_node)
+ros2 run ros2_pi_sense_hat led_matrix_node
+ros2 run ros2_pi_sense_hat joystick_node
+ros2 run ros2_pi_sense_hat imu_node
 
 # Launch files
-ros2 launch <package_name> <launch_file>
+ros2 launch ros2_pi_sense_hat <launch_file>
 ```
 
 ### Testing and Debugging
@@ -129,6 +171,10 @@ colcon test-result --verbose
 ros2 topic list
 ros2 topic echo /topic_name
 ros2 topic info /topic_name
+
+# IMPORTANT: Use timeout for commands that don't exit (echo, spin, etc.)
+timeout 10 ros2 topic echo /topic_name  # Exit after 10 seconds
+timeout 5 ros2 topic echo /topic_name --once  # Get one message with timeout
 
 # Services
 ros2 service list
