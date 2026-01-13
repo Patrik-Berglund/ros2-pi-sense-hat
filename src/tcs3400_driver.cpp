@@ -4,6 +4,8 @@
 static const uint8_t CMD_BIT = 0x80;
 static const uint8_t ENABLE = 0x00;
 static const uint8_t ATIME = 0x01;
+static const uint8_t WTIME = 0x03;
+static const uint8_t CONFIG = 0x0D;
 static const uint8_t CONTROL = 0x0F;
 static const uint8_t ID = 0x12;
 static const uint8_t STATUS = 0x13;
@@ -66,6 +68,13 @@ void TCS3400Driver::set_integration_time(uint8_t atime) {
 
 void TCS3400Driver::set_gain(uint8_t gain) {
   device_.writeReg(CMD_BIT | CONTROL, gain & 0x03);
+}
+
+void TCS3400Driver::set_wait_time(bool enable, uint8_t wtime, bool long_wait) {
+  if (enable) {
+    device_.writeReg(CMD_BIT | WTIME, wtime);
+    device_.writeReg(CMD_BIT | CONFIG, long_wait ? 0x02 : 0x00);  // WLONG bit
+  }
 }
 
 void TCS3400Driver::enable() {

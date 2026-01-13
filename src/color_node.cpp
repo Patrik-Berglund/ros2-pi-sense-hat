@@ -10,6 +10,9 @@ public:
     declare_parameter("integration_time", 0xF6);
     declare_parameter("gain", 2);
     declare_parameter("lux_calibration", 1.0);
+    declare_parameter("wait_enable", false);
+    declare_parameter("wait_time", 0xFF);
+    declare_parameter("wait_long", false);
     
     int rate = get_parameter("publish_rate").as_int();
     lux_cal_ = get_parameter("lux_calibration").as_double();
@@ -22,6 +25,10 @@ public:
     
     tcs3400_.set_integration_time(get_parameter("integration_time").as_int());
     tcs3400_.set_gain(get_parameter("gain").as_int());
+    tcs3400_.set_wait_time(
+      get_parameter("wait_enable").as_bool(),
+      get_parameter("wait_time").as_int(),
+      get_parameter("wait_long").as_bool());
     tcs3400_.enable();
     
     illuminance_pub_ = create_publisher<sensor_msgs::msg::Illuminance>(

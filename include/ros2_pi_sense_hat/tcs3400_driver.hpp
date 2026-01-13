@@ -14,6 +14,7 @@ public:
   
   void set_integration_time(uint8_t atime);
   void set_gain(uint8_t gain);
+  void set_wait_time(bool enable, uint8_t wtime, bool long_wait);
   void enable();
 
 private:
