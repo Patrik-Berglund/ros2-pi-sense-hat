@@ -31,12 +31,14 @@ bool LPS25HDriver::init() {
 
 bool LPS25HDriver::read_pressure(float& pressure) {
   uint8_t buf[3];
-  if (!device_.readMultiReg(PRESS_OUT_XL, buf, 3)) return false;
+  if (!device_.readMultiReg(PRESS_OUT_XL, buf, 3, true)) return false;  // Enable auto-increment
   
-  int32_t p_raw = buf[0] | (buf[1] << 8) | (buf[2] << 16);
-  if (p_raw & 0x800000) p_raw |= 0xFF000000;  // Sign extend
+  int32_t p_raw = (buf[2] << 16) | (buf[1] << 8) | buf[0];
+  if (p_raw & 0x800000) {
+    p_raw |= 0xFF000000;  // Sign extend 24-bit to 32-bit
+  }
   
-  pressure = p_raw / 4096.0f;
+  pressure = (p_raw / 4096.0f) * 100.0f;  // hPa to Pa
   return true;
 }
 
