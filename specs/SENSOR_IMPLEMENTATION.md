@@ -4,6 +4,16 @@
 
 Implemented complete sensor support for Raspberry Pi Sense HAT v2, including environmental sensors (temperature, humidity, pressure) and color/light sensor. All sensors use direct I2C register access with no external libraries.
 
+**Latest Updates (2026-01-13):**
+- ✅ Added software reset on initialization for all sensors
+- ✅ Separated configuration from enable for clean initialization
+- ✅ Added comprehensive parameter validation with descriptors
+- ✅ Added signal handlers for graceful shutdown
+- ✅ Added HTS221 heater control service
+- ✅ Added LPS25H FIFO mean mode and averaging parameters
+- ✅ Added TCS3400 wait time for power saving
+- ✅ All parameters now self-documenting with range validation
+
 ## Implemented Components
 
 ### 1. HTS221 Humidity/Temperature Sensor
@@ -25,9 +35,14 @@ Implemented complete sensor support for Raspberry Pi Sense HAT v2, including env
 
 **Node:** `environmental_node.cpp`
 
-**Parameters:**
-- `temperature_offset_hts221` - Calibration offset (default: 0.0)
-- `hts221_odr` - Output data rate (default: 1)
+**Parameters (with validation):**
+- `temperature_offset_hts221` (-50 to +50°C) - Calibration offset
+- `hts221_odr` (0-3) - Output data rate: 0=one-shot, 1=1Hz, 2=7Hz, 3=12.5Hz
+- `hts221_temp_avg` (0-7) - Temperature averaging samples
+- `hts221_hum_avg` (0-7) - Humidity averaging samples
+
+**Services:**
+- `/sense_hat/set_heater` (std_srvs/SetBool) - Enable/disable built-in heater
 
 ### 2. LPS25H Pressure Sensor
 
@@ -38,6 +53,8 @@ Implemented complete sensor support for Raspberry Pi Sense HAT v2, including env
 - 16-bit temperature measurement
 - 0.01 hPa resolution
 - Configurable output data rate (1-25 Hz)
+- FIFO mean mode for temporal averaging
+- Configurable averaging for both pressure and temperature
 - I2C address: 0x5C
 
 **Key Implementation Details:**
@@ -48,9 +65,13 @@ Implemented complete sensor support for Raspberry Pi Sense HAT v2, including env
 
 **Node:** `environmental_node.cpp`
 
-**Parameters:**
-- `temperature_offset_lps25h` - Calibration offset (default: 0.0)
-- `lps25h_odr` - Output data rate (default: 1)
+**Parameters (with validation):**
+- `temperature_offset_lps25h` (-50 to +50°C) - Calibration offset
+- `lps25h_odr` (0-4) - Output data rate: 0=one-shot, 1=1Hz, 2=7Hz, 3=12.5Hz, 4=25Hz
+- `lps25h_press_avg` (0-3) - Pressure averaging: 0=8, 1=32, 2=128, 3=512 samples
+- `lps25h_temp_avg` (0-3) - Temperature averaging: 0=8, 1=16, 2=32, 3=64 samples
+- `lps25h_fifo_mean` (bool) - Enable FIFO mean mode for temporal averaging
+- `lps25h_fifo_samples` (2-32) - Number of samples to average in FIFO
 
 ### 3. TCS3400 Color/Light Sensor
 
@@ -72,9 +93,13 @@ Implemented complete sensor support for Raspberry Pi Sense HAT v2, including env
 
 **Node:** `color_node.cpp`
 
-**Parameters:**
-- `integration_time` - ATIME register value (default: 0xF6 = 27.8ms)
-- `gain` - Gain setting 0-3 (default: 2 = 16x)
+**Parameters (with validation):**
+- `integration_time` (0-255) - ATIME register value (lower = longer integration)
+- `gain` (0-3) - Gain setting: 0=1x, 1=4x, 2=16x, 3=64x
+- `lux_calibration` (0.1-10.0) - Lux calculation multiplier
+- `wait_enable` (bool) - Enable wait time for power saving
+- `wait_time` (0-255) - WTIME register value (lower = longer wait)
+- `wait_long` (bool) - 12x multiplier for wait time (up to 8.54s)
 
 ## ROS2 Integration
 

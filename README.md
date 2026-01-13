@@ -152,14 +152,17 @@ python3 demo/image_display.py image.png # Display image files
   - Factory-calibrated humidity (0-100% RH, ±3.5% accuracy)
   - Temperature measurement (-40 to +120°C, ±0.5°C accuracy)
   - Configurable output data rate (1-12.5 Hz)
-  - Configurable averaging for noise reduction
+  - Configurable averaging for noise reduction (temperature and humidity)
   - Temperature offset calibration parameter
+  - Built-in heater control via service
 
 - ✅ **LPS25H Pressure Sensor**
   - High-resolution barometric pressure (260-1260 hPa)
   - 0.01 hPa resolution (~10 cm altitude)
   - Temperature measurement for compensation
   - Configurable output data rate (1-25 Hz)
+  - Configurable averaging (pressure and temperature)
+  - FIFO mean mode for temporal averaging
   - Temperature offset calibration parameter
 
 ### Color/Light Sensor (COMPLETED)
@@ -168,6 +171,7 @@ python3 demo/image_display.py image.png # Display image files
   - Ambient light sensing (illuminance)
   - Configurable integration time (2.4-614 ms)
   - Configurable gain (1x, 4x, 16x, 60x)
+  - Wait time for power saving between measurements
   - Normalized RGB output for color detection
   - I2C address: 0x29 (note: hardware differs from spec)
 
@@ -220,6 +224,102 @@ LSM9DS1 I2C → Bias/Scale Correction → Orientation → 6DOF Pose → /odometr
 **LED Matrix:**
 - `/sense_hat/led_matrix/clear` - Clear display
 - `/sense_hat/led_matrix/set_pixel` - Set individual pixel
+
+**Environmental Sensors:**
+- `/sense_hat/set_heater` - Enable/disable HTS221 built-in heater
+
+## Configurable Parameters
+
+All sensor nodes support runtime-validated parameters with descriptive help text. Use `ros2 param describe /node_name param_name` to see valid ranges and descriptions.
+
+### Environmental Node Parameters
+
+**HTS221 (Humidity/Temperature):**
+- `hts221_odr` (0-3): Output data rate - 0=one-shot, 1=1Hz, 2=7Hz, 3=12.5Hz
+- `hts221_temp_avg` (0-7): Temperature averaging samples (higher = more smoothing)
+- `hts221_hum_avg` (0-7): Humidity averaging samples (higher = more smoothing)
+- `temperature_offset_hts221` (-50 to +50°C): Temperature calibration offset
+
+**LPS25H (Pressure):**
+- `lps25h_odr` (0-4): Output data rate - 0=one-shot, 1=1Hz, 2=7Hz, 3=12.5Hz, 4=25Hz
+- `lps25h_press_avg` (0-3): Pressure averaging - 0=8, 1=32, 2=128, 3=512 samples
+- `lps25h_temp_avg` (0-3): Temperature averaging - 0=8, 1=16, 2=32, 3=64 samples
+- `lps25h_fifo_mean` (bool): Enable FIFO mean mode for temporal averaging
+- `lps25h_fifo_samples` (2-32): Number of samples to average in FIFO
+- `temperature_offset_lps25h` (-50 to +50°C): Temperature calibration offset
+
+**General:**
+- `publish_rate` (1-100 Hz): Publishing frequency
+
+**Example:**
+```bash
+ros2 run ros2_pi_sense_hat environmental_node --ros-args \
+  -p lps25h_odr:=4 \
+  -p lps25h_press_avg:=3 \
+  -p lps25h_fifo_mean:=true \
+  -p lps25h_fifo_samples:=32
+```
+
+### Color Node Parameters
+
+- `integration_time` (0-255): ATIME register value (lower = longer integration)
+- `gain` (0-3): Sensor gain - 0=1x, 1=4x, 2=16x, 3=64x
+- `lux_calibration` (0.1-10.0): Lux calculation multiplier
+- `wait_enable` (bool): Enable wait time for power saving
+- `wait_time` (0-255): WTIME register value (lower = longer wait)
+- `wait_long` (bool): 12x multiplier for wait time (up to 8.54s)
+- `publish_rate` (1-100 Hz): Publishing frequency
+
+**Example:**
+```bash
+ros2 run ros2_pi_sense_hat color_node --ros-args \
+  -p integration_time:=0xF6 \
+  -p gain:=2 \
+  -p wait_enable:=true \
+  -p wait_time:=0x00 \
+  -p wait_long:=true
+```
+
+### IMU Node Parameters
+
+**Accelerometer/Gyroscope:**
+- `imu_odr` (10-952 Hz): IMU output data rate - valid: 10, 50, 119, 238, 476, 952
+- `accel_range` (2-16 g): Accelerometer range - valid: 2, 4, 8, 16
+- `gyro_range` (245-2000 dps): Gyroscope range - valid: 245, 500, 2000
+- `accel_bandwidth_auto` (bool): Auto-select accelerometer bandwidth
+- `accel_bandwidth` (0-3): Manual bandwidth setting (if not auto)
+
+**Magnetometer:**
+- `mag_odr` (1-80 Hz): Magnetometer ODR - valid: 0.625, 1.25, 2.5, 5, 10, 20, 40, 80
+- `mag_range` (4-16 gauss): Magnetometer range - valid: 4, 8, 12, 16
+- `mag_performance_mode` (0-3): Performance - 0=low, 1=medium, 2=high, 3=ultra-high
+- `mag_temp_compensation` (bool): Enable temperature compensation
+
+**General:**
+- `publish_rate` (1-1000 Hz): Publishing frequency
+- `frame_id` (string): TF frame ID for IMU data
+- `enable_magnetometer` (bool): Enable magnetometer if available
+
+## Parameter Validation
+
+All parameters include:
+- **Range validation**: ROS2 automatically rejects out-of-range values
+- **Descriptive help**: Use `ros2 param describe` to see valid ranges
+- **Self-documenting**: No need to check code or datasheets
+
+**Example:**
+```bash
+# See parameter info
+ros2 param describe /environmental_node lps25h_odr
+
+# Output:
+# Parameter name: lps25h_odr
+# Type: integer
+# Description: LPS25H ODR: 0=one-shot, 1=1Hz, 2=7Hz, 3=12.5Hz, 4=25Hz
+# Constraints:
+#   Min value: 0
+#   Max value: 4
+```
 
 ## Configuration Files
 
