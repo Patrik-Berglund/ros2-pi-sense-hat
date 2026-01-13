@@ -3,8 +3,19 @@
 #include <sensor_msgs/msg/relative_humidity.hpp>
 #include <sensor_msgs/msg/fluid_pressure.hpp>
 #include <std_srvs/srv/set_bool.hpp>
+#include <signal.h>
 #include "ros2_pi_sense_hat/hts221_driver.hpp"
 #include "ros2_pi_sense_hat/lps25h_driver.hpp"
+
+std::shared_ptr<rclcpp::Node> g_node = nullptr;
+
+void signalHandler(int signum) {
+  if (g_node) {
+    RCLCPP_INFO(g_node->get_logger(), "Interrupt signal (%d) received. Shutting down...", signum);
+  }
+  rclcpp::shutdown();
+  exit(signum);
+}
 
 class EnvironmentalNode : public rclcpp::Node {
 public:
@@ -191,7 +202,12 @@ private:
 
 int main(int argc, char** argv) {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<EnvironmentalNode>());
+  
+  signal(SIGINT, signalHandler);
+  signal(SIGTERM, signalHandler);
+  
+  g_node = std::make_shared<EnvironmentalNode>();
+  rclcpp::spin(g_node);
   rclcpp::shutdown();
   return 0;
 }

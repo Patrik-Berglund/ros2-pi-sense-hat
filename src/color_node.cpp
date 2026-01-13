@@ -1,7 +1,18 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/illuminance.hpp>
 #include <std_msgs/msg/color_rgba.hpp>
+#include <signal.h>
 #include "ros2_pi_sense_hat/tcs3400_driver.hpp"
+
+std::shared_ptr<rclcpp::Node> g_node = nullptr;
+
+void signalHandler(int signum) {
+  if (g_node) {
+    RCLCPP_INFO(g_node->get_logger(), "Interrupt signal (%d) received. Shutting down...", signum);
+  }
+  rclcpp::shutdown();
+  exit(signum);
+}
 
 class ColorNode : public rclcpp::Node {
 public:
@@ -111,7 +122,12 @@ private:
 
 int main(int argc, char** argv) {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<ColorNode>());
+  
+  signal(SIGINT, signalHandler);
+  signal(SIGTERM, signalHandler);
+  
+  g_node = std::make_shared<ColorNode>();
+  rclcpp::spin(g_node);
   rclcpp::shutdown();
   return 0;
 }
