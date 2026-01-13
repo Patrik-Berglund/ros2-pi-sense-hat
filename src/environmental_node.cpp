@@ -47,6 +47,9 @@ public:
       get_parameter("lps25h_fifo_mean").as_bool(),
       get_parameter("lps25h_fifo_samples").as_int());
     
+    hts221_.enable();
+    lps25h_.enable();
+    
     temp_hts_pub_ = create_publisher<sensor_msgs::msg::Temperature>(
       "sense_hat/temperature/humidity_sensor", 10);
     temp_lps_pub_ = create_publisher<sensor_msgs::msg::Temperature>(

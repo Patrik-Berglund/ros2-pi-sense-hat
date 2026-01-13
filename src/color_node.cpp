@@ -22,6 +22,7 @@ public:
     
     tcs3400_.set_integration_time(get_parameter("integration_time").as_int());
     tcs3400_.set_gain(get_parameter("gain").as_int());
+    tcs3400_.enable();
     
     illuminance_pub_ = create_publisher<sensor_msgs::msg::Illuminance>(
       "sense_hat/color/illuminance", 10);

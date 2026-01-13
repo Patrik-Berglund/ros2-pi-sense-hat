@@ -14,6 +14,7 @@ public:
   
   void set_integration_time(uint8_t atime);
   void set_gain(uint8_t gain);
+  void enable();
 
 private:
   I2CDevice device_;

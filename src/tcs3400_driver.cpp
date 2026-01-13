@@ -28,16 +28,11 @@ bool TCS3400Driver::init() {
   // TCS34725 ID is 0x44
   if (id != 0x44) return false;
   
-  // Power on
-  device_.writeReg(CMD_BIT | ENABLE, 0x01);
-  usleep(3000);
+  // Power cycle to reset (no software reset register)
+  device_.writeReg(CMD_BIT | ENABLE, 0x00);  // Power off
+  usleep(10000);
   
-  // Enable ADC with default integration time and gain
-  device_.writeReg(CMD_BIT | ATIME, 0xF6);  // 24ms
-  device_.writeReg(CMD_BIT | CONTROL, 0x02);  // 16x gain
-  device_.writeReg(CMD_BIT | ENABLE, 0x03);  // PON + AEN
-  usleep(30000);
-  
+  // Don't configure here - let node apply parameters
   return true;
 }
 
@@ -71,4 +66,11 @@ void TCS3400Driver::set_integration_time(uint8_t atime) {
 
 void TCS3400Driver::set_gain(uint8_t gain) {
   device_.writeReg(CMD_BIT | CONTROL, gain & 0x03);
+}
+
+void TCS3400Driver::enable() {
+  device_.writeReg(CMD_BIT | ENABLE, 0x01);  // Power on
+  usleep(3000);
+  device_.writeReg(CMD_BIT | ENABLE, 0x03);  // PON + AEN
+  usleep(30000);
 }

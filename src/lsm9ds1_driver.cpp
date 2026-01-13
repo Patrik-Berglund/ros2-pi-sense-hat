@@ -46,21 +46,24 @@ bool LSM9DS1Driver::init() {
     return false;
   }
 
+  // Software reset accel/gyro
+  accel_gyro_.writeReg(0x22, 0x05);  // CTRL_REG8: SW_RESET=1
+  usleep(50000);
+
   // Try to open magnetometer (optional)
   if (magnetometer_.open()) {
     uint8_t who_am_i_m;
     if (magnetometer_.readReg(WHO_AM_I_M, who_am_i_m) && who_am_i_m == WHO_AM_I_M_VAL) {
-      // Configure magnetometer with current settings
-      if (!setMagConfig(mag_odr_, mag_range_, mag_performance_mode_, mag_temp_comp_)) {
-        magnetometer_.close();
-      }
+      // Software reset magnetometer
+      magnetometer_.writeReg(0x21, 0x0C);  // CTRL_REG2_M: SOFT_RST=1
+      usleep(50000);
     } else {
       magnetometer_.close();
     }
   }
 
-  // Configure IMU with current settings (both accel+gyro)
-  return setIMUConfig(imu_odr_, accel_range_, gyro_range_, accel_bw_auto_, accel_bw_);
+  // Don't configure here - let node apply parameters
+  return true;
 }
 
 bool LSM9DS1Driver::readAllSensors(IMUData& data) {

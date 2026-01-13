@@ -30,10 +30,7 @@ bool HTS221Driver::init() {
   
   if (!read_calibration()) return false;
 
-  // Power on, BDU enabled, 1 Hz ODR
-  device_.writeReg(CTRL_REG1, 0x85);
-  usleep(10000);
-
+  // Don't configure here - let node apply parameters
   return true;
 }
 
@@ -115,4 +112,11 @@ void HTS221Driver::set_heater(bool enable) {
     ctrl &= ~0x02;  // Clear HEATER bit
   }
   device_.writeReg(CTRL_REG2, ctrl);
+}
+
+void HTS221Driver::enable() {
+  uint8_t ctrl;
+  device_.readReg(CTRL_REG1, ctrl);
+  ctrl |= 0x84;  // PD=1 (power on), BDU=1
+  device_.writeReg(CTRL_REG1, ctrl);
 }

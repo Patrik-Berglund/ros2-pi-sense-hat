@@ -25,10 +25,11 @@ bool LPS25HDriver::init() {
   uint8_t who_am_i;
   if (!device_.readReg(WHO_AM_I, who_am_i) || who_am_i != WHO_AM_I_VAL) return false;
 
-  // Power on, BDU enabled, 1 Hz ODR
-  device_.writeReg(CTRL_REG1, 0x84);
-  usleep(10000);
-
+  // Software reset
+  device_.writeReg(CTRL_REG2, 0x84);
+  usleep(50000);  // Wait for reset to complete
+  
+  // Don't configure here - let node apply parameters
   return true;
 }
 
@@ -87,4 +88,11 @@ void LPS25HDriver::set_fifo_mean(bool enable, uint8_t samples) {
     // Set FIFO to bypass mode
     device_.writeReg(FIFO_CTRL, 0x00);
   }
+}
+
+void LPS25HDriver::enable() {
+  uint8_t ctrl;
+  device_.readReg(CTRL_REG1, ctrl);
+  ctrl |= 0x84;  // PD=1 (power on), BDU=1
+  device_.writeReg(CTRL_REG1, ctrl);
 }
