@@ -2,6 +2,7 @@
 #include <sensor_msgs/msg/temperature.hpp>
 #include <sensor_msgs/msg/relative_humidity.hpp>
 #include <sensor_msgs/msg/fluid_pressure.hpp>
+#include <std_srvs/srv/set_bool.hpp>
 #include "ros2_pi_sense_hat/hts221_driver.hpp"
 #include "ros2_pi_sense_hat/lps25h_driver.hpp"
 
@@ -13,6 +14,8 @@ public:
     declare_parameter("temperature_offset_lps25h", 0.0);
     declare_parameter("hts221_odr", 1);
     declare_parameter("lps25h_odr", 1);
+    declare_parameter("hts221_temp_avg", 2);
+    declare_parameter("hts221_hum_avg", 4);
     
     int rate = get_parameter("publish_rate").as_int();
     temp_offset_hts_ = get_parameter("temperature_offset_hts221").as_double();
@@ -30,6 +33,9 @@ public:
     
     hts221_.set_odr(get_parameter("hts221_odr").as_int());
     lps25h_.set_odr(get_parameter("lps25h_odr").as_int());
+    hts221_.set_avg_samples(
+      get_parameter("hts221_temp_avg").as_int(),
+      get_parameter("hts221_hum_avg").as_int());
     
     temp_hts_pub_ = create_publisher<sensor_msgs::msg::Temperature>(
       "sense_hat/temperature/humidity_sensor", 10);
@@ -39,6 +45,11 @@ public:
       "sense_hat/humidity", 10);
     pressure_pub_ = create_publisher<sensor_msgs::msg::FluidPressure>(
       "sense_hat/pressure", 10);
+    
+    heater_service_ = create_service<std_srvs::srv::SetBool>(
+      "sense_hat/set_heater",
+      std::bind(&EnvironmentalNode::heater_callback, this,
+                std::placeholders::_1, std::placeholders::_2));
     
     timer_ = create_wall_timer(
       std::chrono::milliseconds(1000 / rate),
@@ -85,6 +96,16 @@ private:
       pressure_pub_->publish(press_msg);
     }
   }
+  
+  void heater_callback(
+    const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
+    std::shared_ptr<std_srvs::srv::SetBool::Response> response)
+  {
+    hts221_.set_heater(request->data);
+    response->success = true;
+    response->message = request->data ? "Heater enabled" : "Heater disabled";
+    RCLCPP_INFO(get_logger(), "%s", response->message.c_str());
+  }
 
   HTS221Driver hts221_;
   LPS25HDriver lps25h_;
@@ -94,6 +115,7 @@ private:
   rclcpp::Publisher<sensor_msgs::msg::Temperature>::SharedPtr temp_lps_pub_;
   rclcpp::Publisher<sensor_msgs::msg::RelativeHumidity>::SharedPtr humidity_pub_;
   rclcpp::Publisher<sensor_msgs::msg::FluidPressure>::SharedPtr pressure_pub_;
+  rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr heater_service_;
   rclcpp::TimerBase::SharedPtr timer_;
 };
 

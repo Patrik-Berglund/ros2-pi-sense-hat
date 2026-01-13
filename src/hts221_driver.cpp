@@ -101,3 +101,14 @@ void HTS221Driver::set_avg_samples(uint8_t temp_avg, uint8_t hum_avg) {
   uint8_t val = ((temp_avg & 0x07) << 3) | (hum_avg & 0x07);
   device_.writeReg(AV_CONF, val);
 }
+
+void HTS221Driver::set_heater(bool enable) {
+  uint8_t ctrl;
+  device_.readReg(CTRL_REG2, ctrl);
+  if (enable) {
+    ctrl |= 0x02;  // Set HEATER bit
+  } else {
+    ctrl &= ~0x02;  // Clear HEATER bit
+  }
+  device_.writeReg(CTRL_REG2, ctrl);
+}

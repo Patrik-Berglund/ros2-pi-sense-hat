@@ -14,6 +14,7 @@ public:
   
   void set_odr(uint8_t odr);
   void set_avg_samples(uint8_t temp_avg, uint8_t hum_avg);
+  void set_heater(bool enable);
 
 private:
   I2CDevice device_;
