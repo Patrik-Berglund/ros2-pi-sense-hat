@@ -16,6 +16,10 @@ public:
     declare_parameter("lps25h_odr", 1);
     declare_parameter("hts221_temp_avg", 2);
     declare_parameter("hts221_hum_avg", 4);
+    declare_parameter("lps25h_press_avg", 2);
+    declare_parameter("lps25h_temp_avg", 2);
+    declare_parameter("lps25h_fifo_mean", false);
+    declare_parameter("lps25h_fifo_samples", 16);
     
     int rate = get_parameter("publish_rate").as_int();
     temp_offset_hts_ = get_parameter("temperature_offset_hts221").as_double();
@@ -36,6 +40,12 @@ public:
     hts221_.set_avg_samples(
       get_parameter("hts221_temp_avg").as_int(),
       get_parameter("hts221_hum_avg").as_int());
+    lps25h_.set_avg_samples(
+      get_parameter("lps25h_press_avg").as_int(),
+      get_parameter("lps25h_temp_avg").as_int());
+    lps25h_.set_fifo_mean(
+      get_parameter("lps25h_fifo_mean").as_bool(),
+      get_parameter("lps25h_fifo_samples").as_int());
     
     temp_hts_pub_ = create_publisher<sensor_msgs::msg::Temperature>(
       "sense_hat/temperature/humidity_sensor", 10);

@@ -24,6 +24,10 @@ bool HTS221Driver::init() {
   uint8_t who_am_i;
   if (!device_.readReg(WHO_AM_I, who_am_i) || who_am_i != WHO_AM_I_VAL) return false;
 
+  // Software reset
+  device_.writeReg(CTRL_REG2, 0x80);
+  usleep(50000);  // Wait for reset to complete
+  
   if (!read_calibration()) return false;
 
   // Power on, BDU enabled, 1 Hz ODR
