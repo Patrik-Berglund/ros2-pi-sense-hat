@@ -6,13 +6,48 @@
 class ColorNode : public rclcpp::Node {
 public:
   ColorNode() : Node("color_node") {
-    declare_parameter("publish_rate", 10);
-    declare_parameter("integration_time", 0xF6);
-    declare_parameter("gain", 2);
-    declare_parameter("lux_calibration", 1.0);
-    declare_parameter("wait_enable", false);
-    declare_parameter("wait_time", 0xFF);
-    declare_parameter("wait_long", false);
+    rcl_interfaces::msg::ParameterDescriptor rate_desc;
+    rate_desc.description = "Publishing rate in Hz";
+    rate_desc.integer_range.resize(1);
+    rate_desc.integer_range[0].from_value = 1;
+    rate_desc.integer_range[0].to_value = 100;
+    declare_parameter("publish_rate", 10, rate_desc);
+    
+    rcl_interfaces::msg::ParameterDescriptor atime_desc;
+    atime_desc.description = "Integration time (ATIME register 0x00-0xFF, lower=longer)";
+    atime_desc.integer_range.resize(1);
+    atime_desc.integer_range[0].from_value = 0;
+    atime_desc.integer_range[0].to_value = 255;
+    declare_parameter("integration_time", 0xF6, atime_desc);
+    
+    rcl_interfaces::msg::ParameterDescriptor gain_desc;
+    gain_desc.description = "Gain: 0=1x, 1=4x, 2=16x, 3=64x";
+    gain_desc.integer_range.resize(1);
+    gain_desc.integer_range[0].from_value = 0;
+    gain_desc.integer_range[0].to_value = 3;
+    declare_parameter("gain", 2, gain_desc);
+    
+    rcl_interfaces::msg::ParameterDescriptor lux_desc;
+    lux_desc.description = "Lux calibration multiplier";
+    lux_desc.floating_point_range.resize(1);
+    lux_desc.floating_point_range[0].from_value = 0.1;
+    lux_desc.floating_point_range[0].to_value = 10.0;
+    declare_parameter("lux_calibration", 1.0, lux_desc);
+    
+    rcl_interfaces::msg::ParameterDescriptor wait_en_desc;
+    wait_en_desc.description = "Enable wait time between measurements for power saving";
+    declare_parameter("wait_enable", false, wait_en_desc);
+    
+    rcl_interfaces::msg::ParameterDescriptor wtime_desc;
+    wtime_desc.description = "Wait time (WTIME register 0x00-0xFF, lower=longer)";
+    wtime_desc.integer_range.resize(1);
+    wtime_desc.integer_range[0].from_value = 0;
+    wtime_desc.integer_range[0].to_value = 255;
+    declare_parameter("wait_time", 0xFF, wtime_desc);
+    
+    rcl_interfaces::msg::ParameterDescriptor wlong_desc;
+    wlong_desc.description = "12x multiplier for wait time (up to 8.54s)";
+    declare_parameter("wait_long", false, wlong_desc);
     
     int rate = get_parameter("publish_rate").as_int();
     lux_cal_ = get_parameter("lux_calibration").as_double();

@@ -9,17 +9,74 @@
 class EnvironmentalNode : public rclcpp::Node {
 public:
   EnvironmentalNode() : Node("environmental_node") {
-    declare_parameter("publish_rate", 1);
-    declare_parameter("temperature_offset_hts221", 0.0);
-    declare_parameter("temperature_offset_lps25h", 0.0);
-    declare_parameter("hts221_odr", 1);
-    declare_parameter("lps25h_odr", 1);
-    declare_parameter("hts221_temp_avg", 2);
-    declare_parameter("hts221_hum_avg", 4);
-    declare_parameter("lps25h_press_avg", 2);
-    declare_parameter("lps25h_temp_avg", 2);
-    declare_parameter("lps25h_fifo_mean", false);
-    declare_parameter("lps25h_fifo_samples", 16);
+    // Publish rate
+    rcl_interfaces::msg::ParameterDescriptor rate_desc;
+    rate_desc.description = "Publishing rate in Hz";
+    rate_desc.integer_range.resize(1);
+    rate_desc.integer_range[0].from_value = 1;
+    rate_desc.integer_range[0].to_value = 100;
+    declare_parameter("publish_rate", 1, rate_desc);
+    
+    // Temperature offsets
+    rcl_interfaces::msg::ParameterDescriptor temp_offset_desc;
+    temp_offset_desc.description = "Temperature calibration offset in °C";
+    temp_offset_desc.floating_point_range.resize(1);
+    temp_offset_desc.floating_point_range[0].from_value = -50.0;
+    temp_offset_desc.floating_point_range[0].to_value = 50.0;
+    declare_parameter("temperature_offset_hts221", 0.0, temp_offset_desc);
+    declare_parameter("temperature_offset_lps25h", 0.0, temp_offset_desc);
+    
+    // HTS221 ODR: 0=one-shot, 1=1Hz, 2=7Hz, 3=12.5Hz
+    rcl_interfaces::msg::ParameterDescriptor hts_odr_desc;
+    hts_odr_desc.description = "HTS221 ODR: 0=one-shot, 1=1Hz, 2=7Hz, 3=12.5Hz";
+    hts_odr_desc.integer_range.resize(1);
+    hts_odr_desc.integer_range[0].from_value = 0;
+    hts_odr_desc.integer_range[0].to_value = 3;
+    declare_parameter("hts221_odr", 1, hts_odr_desc);
+    
+    // LPS25H ODR: 0=one-shot, 1=1Hz, 2=7Hz, 3=12.5Hz, 4=25Hz
+    rcl_interfaces::msg::ParameterDescriptor lps_odr_desc;
+    lps_odr_desc.description = "LPS25H ODR: 0=one-shot, 1=1Hz, 2=7Hz, 3=12.5Hz, 4=25Hz";
+    lps_odr_desc.integer_range.resize(1);
+    lps_odr_desc.integer_range[0].from_value = 0;
+    lps_odr_desc.integer_range[0].to_value = 4;
+    declare_parameter("lps25h_odr", 1, lps_odr_desc);
+    
+    // HTS221 averaging: 0-7
+    rcl_interfaces::msg::ParameterDescriptor hts_avg_desc;
+    hts_avg_desc.description = "Averaging samples: 0-7 (higher = more averaging)";
+    hts_avg_desc.integer_range.resize(1);
+    hts_avg_desc.integer_range[0].from_value = 0;
+    hts_avg_desc.integer_range[0].to_value = 7;
+    declare_parameter("hts221_temp_avg", 2, hts_avg_desc);
+    declare_parameter("hts221_hum_avg", 4, hts_avg_desc);
+    
+    // LPS25H averaging: 0-3
+    rcl_interfaces::msg::ParameterDescriptor lps_avg_desc;
+    lps_avg_desc.description = "Averaging: 0=8, 1=32, 2=128, 3=512 samples";
+    lps_avg_desc.integer_range.resize(1);
+    lps_avg_desc.integer_range[0].from_value = 0;
+    lps_avg_desc.integer_range[0].to_value = 3;
+    declare_parameter("lps25h_press_avg", 2, lps_avg_desc);
+    
+    rcl_interfaces::msg::ParameterDescriptor lps_temp_avg_desc;
+    lps_temp_avg_desc.description = "Averaging: 0=8, 1=16, 2=32, 3=64 samples";
+    lps_temp_avg_desc.integer_range.resize(1);
+    lps_temp_avg_desc.integer_range[0].from_value = 0;
+    lps_temp_avg_desc.integer_range[0].to_value = 3;
+    declare_parameter("lps25h_temp_avg", 2, lps_temp_avg_desc);
+    
+    // LPS25H FIFO
+    rcl_interfaces::msg::ParameterDescriptor fifo_desc;
+    fifo_desc.description = "Enable FIFO mean mode for temporal averaging";
+    declare_parameter("lps25h_fifo_mean", false, fifo_desc);
+    
+    rcl_interfaces::msg::ParameterDescriptor fifo_samples_desc;
+    fifo_samples_desc.description = "FIFO samples to average (2-32)";
+    fifo_samples_desc.integer_range.resize(1);
+    fifo_samples_desc.integer_range[0].from_value = 2;
+    fifo_samples_desc.integer_range[0].to_value = 32;
+    declare_parameter("lps25h_fifo_samples", 16, fifo_samples_desc);
     
     int rate = get_parameter("publish_rate").as_int();
     temp_offset_hts_ = get_parameter("temperature_offset_hts221").as_double();

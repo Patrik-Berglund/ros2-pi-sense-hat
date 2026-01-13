@@ -20,25 +20,88 @@ void signalHandler(int signum) {
 class IMUNode : public rclcpp::Node {
 public:
   IMUNode() : Node("imu_node") {
-    // Declare parameters with validation
-    declare_parameter("publish_rate", 10);
+    // Publish rate
+    rcl_interfaces::msg::ParameterDescriptor rate_desc;
+    rate_desc.description = "Publishing rate in Hz";
+    rate_desc.integer_range.resize(1);
+    rate_desc.integer_range[0].from_value = 1;
+    rate_desc.integer_range[0].to_value = 1000;
+    declare_parameter("publish_rate", 10, rate_desc);
     
-    // IMU parameters (shared ODR for accel+gyro)
-    declare_parameter("imu_odr", 119);
-    declare_parameter("accel_range", 2);
-    declare_parameter("gyro_range", 245);
-    declare_parameter("accel_bandwidth_auto", true);
-    declare_parameter("accel_bandwidth", 1);
+    // IMU ODR (shared for accel+gyro): 10, 50, 119, 238, 476, 952 Hz
+    rcl_interfaces::msg::ParameterDescriptor imu_odr_desc;
+    imu_odr_desc.description = "IMU ODR in Hz: 10, 50, 119, 238, 476, 952";
+    imu_odr_desc.integer_range.resize(1);
+    imu_odr_desc.integer_range[0].from_value = 10;
+    imu_odr_desc.integer_range[0].to_value = 952;
+    declare_parameter("imu_odr", 119, imu_odr_desc);
     
-    // Magnetometer parameters (independent)
-    declare_parameter("mag_odr", 10);
-    declare_parameter("mag_range", 4);
-    declare_parameter("mag_performance_mode", 2);
-    declare_parameter("mag_temp_compensation", true);
+    // Accelerometer range: 2, 4, 8, 16 g
+    rcl_interfaces::msg::ParameterDescriptor accel_range_desc;
+    accel_range_desc.description = "Accelerometer range in g: 2, 4, 8, 16";
+    accel_range_desc.integer_range.resize(1);
+    accel_range_desc.integer_range[0].from_value = 2;
+    accel_range_desc.integer_range[0].to_value = 16;
+    declare_parameter("accel_range", 2, accel_range_desc);
     
-    // Standard parameters
-    declare_parameter("frame_id", "imu_link");
-    declare_parameter("enable_magnetometer", true);
+    // Gyroscope range: 245, 500, 2000 dps
+    rcl_interfaces::msg::ParameterDescriptor gyro_range_desc;
+    gyro_range_desc.description = "Gyroscope range in dps: 245, 500, 2000";
+    gyro_range_desc.integer_range.resize(1);
+    gyro_range_desc.integer_range[0].from_value = 245;
+    gyro_range_desc.integer_range[0].to_value = 2000;
+    declare_parameter("gyro_range", 245, gyro_range_desc);
+    
+    // Accelerometer bandwidth
+    rcl_interfaces::msg::ParameterDescriptor accel_bw_auto_desc;
+    accel_bw_auto_desc.description = "Auto-select accelerometer bandwidth based on ODR";
+    declare_parameter("accel_bandwidth_auto", true, accel_bw_auto_desc);
+    
+    rcl_interfaces::msg::ParameterDescriptor accel_bw_desc;
+    accel_bw_desc.description = "Accelerometer bandwidth: 0-3 (if not auto)";
+    accel_bw_desc.integer_range.resize(1);
+    accel_bw_desc.integer_range[0].from_value = 0;
+    accel_bw_desc.integer_range[0].to_value = 3;
+    declare_parameter("accel_bandwidth", 1, accel_bw_desc);
+    
+    // Magnetometer ODR: 0.625, 1.25, 2.5, 5, 10, 20, 40, 80 Hz
+    rcl_interfaces::msg::ParameterDescriptor mag_odr_desc;
+    mag_odr_desc.description = "Magnetometer ODR in Hz: 0.625, 1.25, 2.5, 5, 10, 20, 40, 80";
+    mag_odr_desc.integer_range.resize(1);
+    mag_odr_desc.integer_range[0].from_value = 1;
+    mag_odr_desc.integer_range[0].to_value = 80;
+    declare_parameter("mag_odr", 10, mag_odr_desc);
+    
+    // Magnetometer range: 4, 8, 12, 16 gauss
+    rcl_interfaces::msg::ParameterDescriptor mag_range_desc;
+    mag_range_desc.description = "Magnetometer range in gauss: 4, 8, 12, 16";
+    mag_range_desc.integer_range.resize(1);
+    mag_range_desc.integer_range[0].from_value = 4;
+    mag_range_desc.integer_range[0].to_value = 16;
+    declare_parameter("mag_range", 4, mag_range_desc);
+    
+    // Magnetometer performance mode: 0=low, 1=medium, 2=high, 3=ultra-high
+    rcl_interfaces::msg::ParameterDescriptor mag_perf_desc;
+    mag_perf_desc.description = "Magnetometer performance: 0=low, 1=medium, 2=high, 3=ultra-high";
+    mag_perf_desc.integer_range.resize(1);
+    mag_perf_desc.integer_range[0].from_value = 0;
+    mag_perf_desc.integer_range[0].to_value = 3;
+    declare_parameter("mag_performance_mode", 2, mag_perf_desc);
+    
+    // Magnetometer temperature compensation
+    rcl_interfaces::msg::ParameterDescriptor mag_temp_desc;
+    mag_temp_desc.description = "Enable magnetometer temperature compensation";
+    declare_parameter("mag_temp_compensation", true, mag_temp_desc);
+    
+    // Frame ID
+    rcl_interfaces::msg::ParameterDescriptor frame_desc;
+    frame_desc.description = "TF frame ID for IMU data";
+    declare_parameter("frame_id", "imu_link", frame_desc);
+    
+    // Enable magnetometer
+    rcl_interfaces::msg::ParameterDescriptor mag_enable_desc;
+    mag_enable_desc.description = "Enable magnetometer (if available)";
+    declare_parameter("enable_magnetometer", true, mag_enable_desc);
     
     // Get and validate parameters
     int publish_rate = get_parameter("publish_rate").as_int();
