@@ -1,0 +1,23 @@
+[INFO] [1768422308.553563430] [camera_to_matrix]: Resized: (8, 8, 3), sample pixel: [  0 154   0]
+[INFO] [1768422308.615764308] [camera_to_matrix]: Received image: (480, 640, 3), encoding: rgb8, min: 0, max: 154
+[INFO] [1768422308.620862045] [camera_to_matrix]: Resized: (8, 8, 3), sample pixel: [  0 154   0]
+[INFO] [1768422308.682674185] [camera_to_matrix]: Received image: (480, 640, 3), encoding: rgb8, min: 0, max: 154
+[INFO] [1768422308.687914551] [camera_to_matrix]: Resized: (8, 8, 3), sample pixel: [  0 154   0]
+[INFO] [1768422308.750226297] [camera_to_matrix]: Received image: (480, 640, 3), encoding: rgb8, min: 0, max: 154
+[INFO] [1768422308.755306331] [camera_to_matrix]: Resized: (8, 8, 3), sample pixel: [  0 154   0]
+[INFO] [1768422308.816867806] [camera_to_matrix]: Received image: (480, 640, 3), encoding: rgb8, min: 0, max: 154
+[INFO] [1768422308.821384955] [camera_to_matrix]: Resized: (8, 8, 3), sample pixel: [  0 154   0]
+[INFO] [1768422308.882270399] [camera_to_matrix]: Received image: (480, 640, 3), encoding: rgb8, min: 0, max: 154
+[INFO] [1768422308.886797215] [camera_to_matrix]: Resized: (8, 8, 3), sample pixel: [  0 154   0]
+[INFO] [1768422308.948613521] [camera_to_matrix]: Received image: (480, 640, 3), encoding: rgb8, min: 0, max: 154
+[INFO] [1768422308.953139448] [camera_to_matrix]: Resized: (8, 8, 3), sample pixel: [  0 154   0]
+[INFO] [1768422309.030538631] [camera_to_matrix]: Received image: (480, 640, 3), encoding: rgb8, min: 0, max: 154
+[INFO] [1768422309.035184446] [camera_to_matrix]: Resized: (8, 8, 3), sample pixel: [  0 154   0]
+[INFO] [1768422309.083451452] [camera_to_matrix]: Received image: (480, 640, 3), encoding: rgb8, min: 0, max: 154
+[INFO] [1768422309.088791373] [camera_to_matrix]: Resized: (8, 8, 3), sample pixel: [  0 154   0]
+[INFO] [1768422309.149647038] [camera_to_matrix]: Received image: (480, 640, 3), encoding: rgb8, min: 0, max: 154
+[INFO] [1768422309.154157058] [camera_to_matrix]: Resized: (8, 8, 3), sample pixel: [  0 154   0]
+[INFO] [1768422309.215564905] [camera_to_matrix]: Received image: (480, 640, 3), encoding: rgb8, min: 0, max: 154
+[INFO] [1768422309.220100535] [camera_to_matrix]: Resized: (8, 8, 3), sample pixel: [  0 154   0]
+[INFO] [1768422309.283330757] [camera_to_matrix]: Received image: (480, 640, 3), encoding: rgb8, min: 0, max: 154
+[INFO] [1768422309.287962423] [camera_to_matrix]: Resized: (8, 8, 3), sample pixel: [  0 154   0]
