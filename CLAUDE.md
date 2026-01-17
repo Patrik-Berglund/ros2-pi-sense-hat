@@ -1,148 +1,17 @@
-# AI Agent Guidelines for ROS2 Projects
+# CLAUDE.md
 
-## Development Environment
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**Current Environment**: WSL (Windows Subsystem for Linux) - for code editing and planning
+## Project Overview
 
-**Target System**: Raspberry Pi 4 (4GB RAM, 16GB SD card)
-- OS: Ubuntu 24.04 Server (no GUI/X11)
-- ROS2: Kilted
-- When running on target: Can build, run, and test code directly
-- Hardware access: I2C, GPIO, sensors available on target only
-- No graphical display - terminal/SSH only
+ROS2 package for Raspberry Pi Sense HAT v2 on Ubuntu 24.04 with ROS2 Kilted.
+All production code is C++17. Python is only for demos and calibration scripts.
 
-**Workflow**:
-- Edit code in WSL
-- Build and test on Raspberry Pi target system
-- Agent can run on either environment depending on task
+## Build Commands
 
-**Team Context**:
-- Currently in learning phase for ROS2 and C++
-- Explanations should be clear and educational
-- Include rationale for technical decisions
-
-## Communication Style
-
-- Maintain 85-90% honesty factor: Be direct about technical issues without unnecessary harshness
-- Use straightforward, developer-to-developer language
-- Don't automatically agree with user suggestions - assess approaches critically
-- When users propose problematic solutions:
-  - State issues clearly: "That approach has significant issues"
-  - Explain why it's problematic
-  - Steer toward better solutions
-- Be direct about technical trade-offs and downsides
-- Skip flattery - respond directly to technical questions
-- Never say things like "That's a great idea!" or "Excellent suggestion!" unless it genuinely is
-- Evaluate proposals on technical merit, not to be agreeable
-
-## Development Workflow
-
-### Specification-Driven Development
-
-We follow a structured process:
-
-1. **Specification**: User creates a spec (like a user story) in Markdown in the `specs/` folder
-2. **Investigation**: Agent investigates the codebase - read existing code, check patterns, verify dependencies
-3. **Planning**: Agent drafts an implementation plan in Markdown based on the spec
-4. **Review & Iterate**: Review and iterate the plan until it's solid
-5. **Implementation**: Only then write code
-
-**Planning Guidelines**:
-- Plans should be high-level, not code-detailed (unless developer requests it)
-- Focus on approach, architecture, and key decisions
-- Identify risks, trade-offs, and open questions
-- Keep it concise - details emerge during implementation
-- Save plans in `specs/` folder alongside the spec
-- **Use web search during planning** when uncertain about:
-  - API specifications or conventions
-  - Hardware capabilities or limitations
-  - Best practices for unfamiliar technologies
-  - Current versions or compatibility
-  - Technical specifications that may have changed
-- Focus on approach, architecture, and key decisions
-- Identify risks, trade-offs, and open questions
-- Keep it concise - details emerge during implementation
-- Save plans in `specs/` folder alongside the spec
-
-**Example Plan Structure**:
-```markdown
-# Implementation Plan: [Feature Name]
-
-## Approach
-- High-level strategy
-
-## Architecture
-- Components involved
-- Key interfaces
-
-## Key Decisions
-- Important technical choices
-
-## Risks & Trade-offs
-- What could go wrong
-- Alternative approaches considered
-
-## Open Questions
-- Things to clarify before coding
-```
-
-### Research First - Never Assume
-
-During investigation phase:
-
-1. **Read existing implementations**: Find similar code as a template
-2. **Check patterns**: Review existing code in the same directory
-3. **Verify dependencies**: Understand what the code depends on
-4. **Read documentation**: Check project docs, datasheets, and specs
-5. **Search when needed**: Use web search for ROS2 API details, hardware specs, or unfamiliar concepts
-
-**When to use web search:**
-- ROS2 API details, message types, or conventions
-- Hardware specifications, datasheets, register addresses
-- Unfamiliar libraries or frameworks
-- Current best practices or recent changes
-- Verifying technical specifications
-
-**Never assume:**
-- Function signatures or method names
-- ROS2 message types or service definitions
-- Existing class structures
-- Hardware protocols or register addresses
-
-**Always verify by reading actual code or searching documentation.**
-
-## Production Code
-
-**CRITICAL**: ALL production code MUST be C++. Python is ONLY for demos and tests.
-
-## Project Structure
-
-**Directory Organization:**
-- `scripts/` - Production tools (calibration, node startup scripts)
-- `demo/` - Example and test scripts
-- `specs/` - Specifications and implementation plans
-- `src/` - C++ source code
-- `include/` - C++ headers
-- `config/` - Configuration files
-
-## ROS2 Development Tools
-
-### Workspace Setup (First Time Only)
 ```bash
-# Create workspace and link package
-cd /home/patrik
-# This directory is already the workspace
-
-# No additional setup needed
-```
-
-### Build and Run
-```bash
-# Source ROS2 environment
+# Source ROS2 and build
 source /opt/ros/kilted/setup.bash
-
-# Build workspace
-
 colcon build --packages-select ros2_pi_sense_hat
 source install/setup.bash
 
@@ -152,75 +21,110 @@ colcon build --packages-select ros2_pi_sense_hat --event-handlers console_direct
 # Clean build
 colcon build --packages-select ros2_pi_sense_hat --cmake-clean-cache
 
-# Run nodes (available: led_matrix_node, joystick_node, imu_node)
+# Run tests
+colcon test --packages-select ros2_pi_sense_hat
+colcon test-result --verbose
+```
+
+## Running Nodes
+
+```bash
+# Launch all sensor nodes
+ros2 launch ros2_pi_sense_hat sense_hat.launch.py
+
+# Run individual nodes
 ros2 run ros2_pi_sense_hat led_matrix_node
 ros2 run ros2_pi_sense_hat joystick_node
 ros2 run ros2_pi_sense_hat imu_node
-
-# Launch files
-ros2 launch ros2_pi_sense_hat <launch_file>
+ros2 run ros2_pi_sense_hat environmental_node
+ros2 run ros2_pi_sense_hat color_node
 ```
 
-### Testing and Debugging
+## Debugging ROS2
+
 ```bash
-# Run tests
-colcon test --packages-select <package_name>
-colcon test-result --verbose
+# IMPORTANT: Use timeout for commands that don't exit
+timeout 10 ros2 topic echo /topic_name
+timeout 5 ros2 topic echo /topic_name --once
 
-# List topics
 ros2 topic list
-ros2 topic echo /topic_name
 ros2 topic info /topic_name
-
-# IMPORTANT: Use timeout for commands that don't exit (echo, spin, etc.)
-timeout 10 ros2 topic echo /topic_name  # Exit after 10 seconds
-timeout 5 ros2 topic echo /topic_name --once  # Get one message with timeout
-
-# Services
-ros2 service list
-ros2 service call /service_name <srv_type> "request"
-
-# Nodes
 ros2 node list
 ros2 node info /node_name
-
-# Parameters
-ros2 param list /node_name
-ros2 param get /node_name parameter_name
-ros2 param set /node_name parameter_name value
+ros2 param describe /node_name param_name
 ```
 
-## Code Style Guidelines
+## Architecture
 
-Follow the ROS2 Code Style Guide: https://docs.ros.org/en/rolling/Contributing/Code-Style-Language-Versions.html
+### Driver Layer Pattern
+All hardware access uses direct I2C register-level communication (no kernel drivers):
+- `I2CDevice` (`i2c_device.hpp/cpp`) - Base I2C operations, used by all drivers
+- Sensor drivers inherit I2C functionality and implement sensor-specific register protocols:
+  - `ATTINY88Driver` - LED matrix (8x8 RGB) and joystick via GPIO24 frame sync
+  - `LSM9DS1Driver` - 9-DOF IMU (accel/gyro at 0x6A, mag at 0x1C)
+  - `HTS221Driver` - Humidity/temperature sensor
+  - `LPS25HDriver` - Pressure sensor
+  - `TCS3400Driver` - Color/light sensor (actually TCS34725 at 0x29)
 
-### C++ (ALL Production Code)
+### Node Pattern
+Each node follows the same structure:
+1. Declare parameters with `ParameterDescriptor` for validation and self-documentation
+2. Initialize driver with I2C bus and address
+3. Create publishers for sensor data using standard `sensor_msgs` types
+4. Timer-based publishing at configurable rate
+5. Graceful shutdown via signal handler
 
-**Standard**: C++17
+### Sensor Fusion Pipeline
+```
+LSM9DS1 → IMU Node (calibration) → Madgwick AHRS → EKF (robot_localization) → /odometry/filtered
+```
 
-**Style**: Google C++ Style Guide with ROS2 modifications
+Key files:
+- `imu_calibration.hpp/cpp` - Runtime calibration coefficient application
+- `scripts/calibrate_imu.py` - Interactive calibration wizard
+- `config/madgwick.yaml`, `config/ekf_minimal.yaml` - Fusion parameters
 
-**Key Rules**:
-- 100 character line length
-- `.hpp` for headers, `.cpp` for implementation
-- `snake_case` for functions/methods (ROS2 convention)
-- `CamelCase` for classes
-- `g_snake_case` for global variables
-- Open braces for functions/classes, cuddled for if/while/for
-- `char * c` pointer syntax
-- `///` and `/** */` for documentation, `//` for code comments
-- Always use braces for if/else/while/for
-- No Boost unless absolutely required
-- Exceptions allowed (but avoid in C-wrapped APIs)
+### Custom Services
+Defined in `srv/`:
+- `SetPixel.srv` - Set individual LED matrix pixel
+- `ReadJoystick.srv` - Read joystick state
 
-**Example**:
+## Development Environment
+
+**Edit**: WSL (Windows Subsystem for Linux)
+**Build/Test**: Raspberry Pi 4 via SSH (Ubuntu 24.04, no GUI)
+**Hardware**: Sense HAT v2 with I2C at 400kHz
+
+Kernel drivers must be blacklisted for direct I2C access (see README.md installation).
+
+## Code Style
+
+**ALL production code MUST be C++. Python is ONLY for demos and test scripts.**
+
+Follow [ROS2 Kilted style guide](https://docs.ros.org/en/kilted/The-ROS2-Project/Contributing/Code-Style-Language-Versions.html) with [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html) as base.
+
+### C++ Rules (C++17)
+- **Line length**: 100 characters max
+- **Files**: `.hpp` headers, `.cpp` implementation
+- **Indentation**: 2 spaces, no tabs
+- **Braces**: Same line for functions/classes/control structures, always use braces even for single statements
+- **Pointer syntax**: `char * c` (spaces around `*`) - handles `char * c, * d, * e` correctly
+- **Naming**:
+  - `CamelCase` for classes/structs
+  - `snake_case` for functions/methods (ROS2 convention, differs from Google)
+  - `snake_case` for variables
+  - `g_snake_case` for globals
+  - `member_` trailing underscore for class members
+- **Comments**: `///` and `/** */` for documentation (Doxygen), `//` for code comments
+- **Exceptions**: Allowed in user-facing APIs, avoid in destructors and C-wrapped code
+- **No Boost** unless absolutely required
+
 ```cpp
-class SensorDriver
-{
+class SensorDriver {
 public:
   SensorDriver();
-  
-  /// Read sensor data
+
+  /// Read sensor data from device
   bool read_data(uint8_t * buffer, size_t length);
 
 private:
@@ -228,8 +132,7 @@ private:
   uint8_t address_;
 };
 
-void process_data()
-{
+void process_data() {
   if (condition) {
     do_something();
   } else {
@@ -238,176 +141,78 @@ void process_data()
 }
 ```
 
-**Linters**: Use ament linting tools
-- `ament_clang_format` - Code formatting
-- `ament_cpplint` - Style checking
-- `ament_uncrustify` - Code formatting
-- `ament_cppcheck` - Static analysis
+### Architectural Guidelines
 
-### Python (Demos and Tests ONLY)
+**Class Design:**
+- Favor composition over inheritance (use inheritance only for true "is-a" relationships)
+- Single responsibility - classes should have clear purposes with well-defined invariants
+- Make data members `private` unless constants; use accessors when needed
+- Mark methods `const` when they don't modify state
+- Use `explicit` on single-argument constructors to prevent implicit conversions
 
-**Standard**: Python 3
+**Copy/Move Semantics:**
+- Explicitly declare or delete copy/move operations - never leave implicit
+- Copyable: declare copy constructor and assignment
+- Move-only: declare move ops, delete copy ops
+- Non-copyable: delete both
 
-**Style**: PEP8 with ROS2 modifications
+**Ownership & Memory:**
+- Prefer single, fixed owners for dynamically allocated objects
+- Use `std::unique_ptr` for exclusive ownership
+- Use `std::shared_ptr` for shared ownership (sparingly)
+- RAII for all resource management - no manual cleanup
 
-**Key Rules**:
+**Inheritance:**
+- All inheritance must be `public`
+- Always use `override` or `final` on virtual function overrides
+- Avoid multiple implementation inheritance
+- Never call virtual functions in constructors/destructors
+
+**Headers:**
+- Include order: related header, C system, C++ stdlib, third-party, project headers
+- Separate groups with blank lines
+- Avoid forward declarations - include what you need
+- Inline functions only when <10 lines
+
+**Namespaces:**
+- Use namespaces with unique project-based names
+- Never use `using namespace` directives
+- Use `internal` namespace for implementation details
+
+**Error Handling:**
+- Exceptions allowed in user-facing APIs (ROS2 convention)
+- Never throw from destructors
+- Consider avoiding exceptions in C-wrapped APIs
+
+### Python Rules (demos/tests only)
+- Python 3, PEP8 style
 - 100 character line length
 - Single quotes preferred
-- One import per line
-- Hanging indents for continuation lines
 
-**Linters**: Use ament linting tools
-- `ament_pycodestyle` - PEP8 checking
-- `ament_flake8` - Style and error checking
+### Linting
+```bash
+# Fix C++ formatting
+ament_clang_format --reformat src/ include/
+ament_uncrustify --reformat src/ include/
 
-### CMake
-
-**Key Rules**:
-- Lowercase command names: `find_package`, not `FIND_PACKAGE`
-- `snake_case` identifiers
-- 2-space indentation
-- No whitespace before `(`
-
-**Linters**: Use ament linting tools
-- `ament_cmake_lint` - CMake style checking
-
-### Markdown Documentation
-
-**Key Rules**:
-- Each sentence on a new line (better diffs)
-- ATX-style headers (`#`, `##`, `###`)
-- Code blocks with syntax highlighting
-- Empty line before/after code blocks
-
-## Testing with ament
-
-**Use ROS2 ament testing framework** - see `ament_lint_auto` for automated style checking.
-
-### C++ Tests
-
-Use `ament_cmake_gtest` for unit tests:
-
-```cmake
-if(BUILD_TESTING)
-  find_package(ament_cmake_gtest REQUIRED)
-  
-  ament_add_gtest(test_node test/test_node.cpp)
-  target_link_libraries(test_node ${PROJECT_NAME})
-endif()
+# Check style
+colcon test --packages-select ros2_pi_sense_hat
+colcon test-result --verbose
 ```
 
-### Integration Tests
+## Development Workflow
 
-Use `ament_cmake_pytest` for integration tests:
+1. **Specification**: Create spec in `specs/` folder
+2. **Investigation**: Read existing code patterns, verify dependencies
+3. **Planning**: Draft implementation plan in `specs/`
+4. **Review**: Iterate until plan is solid
+5. **Implementation**: Write code
 
-```cmake
-if(BUILD_TESTING)
-  find_package(ament_cmake_pytest REQUIRED)
-  ament_add_pytest_test(integration_test test/integration_test.py)
-endif()
-```
+When planning, use web search for ROS2 APIs, hardware specs, or unfamiliar concepts.
+Never assume function signatures, message types, or register addresses - verify first.
 
-### Automated Linting
+## Communication Style
 
-Use `ament_lint_auto` to run all linters:
-
-```cmake
-if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  ament_lint_auto_find_test_dependencies()
-endif()
-```
-
-Add linters to `package.xml`:
-```xml
-<test_depend>ament_lint_auto</test_depend>
-<test_depend>ament_lint_common</test_depend>
-```
-
-## ROS2 Architecture Patterns
-
-### Node Design
-
-- **One node per sensor/device**: Each sensor should be its own node
-- Keeps concerns separated and allows independent lifecycle management
-- Enables flexible composition and deployment
-
-### Hardware Access Philosophy
-
-- **Direct I2C/GPIO access preferred**: Avoid kernel drivers for basic I2C devices
-- Use direct register-level access for sensors and peripherals
-- Provides better control and understanding of hardware behavior
-- May require blacklisting kernel drivers to prevent conflicts
-
-### Component-Based Nodes
-
-- Use ROS2 component architecture for composability
-- Implement `rclcpp::Node` or `rclcpp_lifecycle::LifecycleNode`
-- Register components with `RCLCPP_COMPONENTS_REGISTER_NODE`
-
-### Message Types
-
-- Use standard ROS2 messages when possible:
-  - `sensor_msgs/msg/*` for sensor data
-  - `geometry_msgs/msg/*` for poses, transforms
-  - `std_msgs/msg/*` for simple types
-  - `nav_msgs/msg/*` for navigation
-- Create custom messages only when necessary
-
-### Service Patterns
-
-- Use `std_srvs/srv/Trigger` for simple actions
-- Use `std_srvs/srv/SetBool` for enable/disable
-- Create custom services for complex operations
-- Return success/failure with meaningful error messages
-
-### Lifecycle Nodes
-
-- Use lifecycle nodes for managed startup/shutdown
-- Implement state transitions: unconfigured → inactive → active
-- Handle cleanup in appropriate lifecycle callbacks
-
-## Common Pitfalls
-
-### Build Issues
-- **Problem**: Header not found
-  - **Check**: `ament_target_dependencies` includes required packages
-  - **Check**: Package listed in `package.xml` dependencies
-  - **Check**: Include paths correct in CMakeLists.txt
-
-### Runtime Issues
-- **Problem**: Node not publishing
-  - **Check**: Topic name correct? `ros2 topic list`
-  - **Check**: Message type matches? `ros2 topic info /topic_name`
-  - **Check**: Node running? `ros2 node list`
-  - **Check**: QoS settings compatible?
-
-### Linting Issues
-- **Problem**: Style check failures
-  - **Fix**: Run `ament_uncrustify --reformat` or `ament_clang_format --reformat`
-  - **Check**: Verify with `colcon test --packages-select <package_name>`
-
-## Package Structure
-
-```
-package_name/
-├── include/
-│   └── package_name/       # Public C++ headers
-├── src/                    # C++ implementation
-├── test/                   # C++ tests (gtest)
-├── launch/                 # Launch files (Python)
-├── config/                 # Configuration files (YAML)
-├── msg/                    # Custom message definitions
-├── srv/                    # Custom service definitions
-├── action/                 # Custom action definitions
-├── CMakeLists.txt
-├── package.xml
-└── README.md
-```
-
-## References
-
-- ROS2 Documentation: https://docs.ros.org/
-- ROS2 Code Style Guide: https://docs.ros.org/en/rolling/Contributing/Code-Style-Language-Versions.html
-- Google C++ Style Guide: https://google.github.io/styleguide/cppguide.html
-- ament_lint Documentation: https://github.com/ament/ament_lint
+Be direct about technical issues. Evaluate proposals on technical merit.
+Skip flattery. State problems clearly and steer toward better solutions.
+User is learning ROS2/C++ - include rationale for technical decisions.

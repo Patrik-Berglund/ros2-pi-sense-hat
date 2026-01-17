@@ -59,10 +59,6 @@ We follow a structured process:
   - Best practices for unfamiliar technologies
   - Current versions or compatibility
   - Technical specifications that may have changed
-- Focus on approach, architecture, and key decisions
-- Identify risks, trade-offs, and open questions
-- Keep it concise - details emerge during implementation
-- Save plans in `specs/` folder alongside the spec
 
 **Example Plan Structure**:
 ```markdown
@@ -205,7 +201,7 @@ ros2 param set /node_name parameter_name value
 
 ## Code Style Guidelines
 
-Follow the ROS2 Code Style Guide: https://docs.ros.org/en/rolling/Contributing/Code-Style-Language-Versions.html
+Follow the [ROS2 Kilted Style Guide](https://docs.ros.org/en/kilted/The-ROS2-Project/Contributing/Code-Style-Language-Versions.html) and [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html).
 
 ### C++ (ALL Production Code)
 
@@ -216,24 +212,26 @@ Follow the ROS2 Code Style Guide: https://docs.ros.org/en/rolling/Contributing/C
 **Key Rules**:
 - 100 character line length
 - `.hpp` for headers, `.cpp` for implementation
-- `snake_case` for functions/methods (ROS2 convention)
+- 2 spaces indentation, no tabs
+- `snake_case` for functions/methods (ROS2 convention, differs from Google)
 - `CamelCase` for classes
+- `snake_case` for variables
 - `g_snake_case` for global variables
-- Open braces for functions/classes, cuddled for if/while/for
-- `char * c` pointer syntax
-- `///` and `/** */` for documentation, `//` for code comments
+- `member_` trailing underscore for class members
+- Braces on same line for functions/classes/control structures
 - Always use braces for if/else/while/for
+- `char * c` pointer syntax (spaces around `*`)
+- `///` and `/** */` for documentation (Doxygen), `//` for code comments
 - No Boost unless absolutely required
-- Exceptions allowed (but avoid in C-wrapped APIs)
+- Exceptions allowed in user-facing APIs, avoid in destructors and C-wrapped code
 
 **Example**:
 ```cpp
-class SensorDriver
-{
+class SensorDriver {
 public:
   SensorDriver();
-  
-  /// Read sensor data
+
+  /// Read sensor data from device
   bool read_data(uint8_t * buffer, size_t length);
 
 private:
@@ -241,8 +239,7 @@ private:
   uint8_t address_;
 };
 
-void process_data()
-{
+void process_data() {
   if (condition) {
     do_something();
   } else {
@@ -256,6 +253,49 @@ void process_data()
 - `ament_cpplint` - Style checking
 - `ament_uncrustify` - Code formatting
 - `ament_cppcheck` - Static analysis
+
+### Architectural Guidelines
+
+**Class Design:**
+- Favor composition over inheritance (use inheritance only for true "is-a" relationships)
+- Single responsibility - classes should have clear purposes with well-defined invariants
+- Make data members `private` unless constants; use accessors when needed
+- Mark methods `const` when they don't modify state
+- Use `explicit` on single-argument constructors to prevent implicit conversions
+
+**Copy/Move Semantics:**
+- Explicitly declare or delete copy/move operations - never leave implicit
+- Copyable: declare copy constructor and assignment
+- Move-only: declare move ops, delete copy ops
+- Non-copyable: delete both
+
+**Ownership & Memory:**
+- Prefer single, fixed owners for dynamically allocated objects
+- Use `std::unique_ptr` for exclusive ownership
+- Use `std::shared_ptr` for shared ownership (sparingly)
+- RAII for all resource management - no manual cleanup
+
+**Inheritance:**
+- All inheritance must be `public`
+- Always use `override` or `final` on virtual function overrides
+- Avoid multiple implementation inheritance
+- Never call virtual functions in constructors/destructors
+
+**Headers:**
+- Include order: related header, C system, C++ stdlib, third-party, project headers
+- Separate groups with blank lines
+- Avoid forward declarations - include what you need
+- Inline functions only when <10 lines
+
+**Namespaces:**
+- Use namespaces with unique project-based names
+- Never use `using namespace` directives
+- Use `internal` namespace for implementation details
+
+**Error Handling:**
+- Exceptions allowed in user-facing APIs (ROS2 convention)
+- Never throw from destructors
+- Consider avoiding exceptions in C-wrapped APIs
 
 ### Python (Demos and Tests ONLY)
 
@@ -420,7 +460,7 @@ package_name/
 
 ## References
 
-- ROS2 Documentation: https://docs.ros.org/
-- ROS2 Code Style Guide: https://docs.ros.org/en/rolling/Contributing/Code-Style-Language-Versions.html
-- Google C++ Style Guide: https://google.github.io/styleguide/cppguide.html
-- ament_lint Documentation: https://github.com/ament/ament_lint
+- [ROS2 Kilted Documentation](https://docs.ros.org/en/kilted/)
+- [ROS2 Kilted Style Guide](https://docs.ros.org/en/kilted/The-ROS2-Project/Contributing/Code-Style-Language-Versions.html)
+- [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html)
+- [ament_lint Documentation](https://github.com/ament/ament_lint)
